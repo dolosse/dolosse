@@ -1,0 +1,10 @@
+# The host for your database
+host: localhost
+# Port that we should use for the connection
+port: 5432
+# Add your Postgresql user name here
+username: postgres
+# Add your password here
+password:
+# Add the database that you'd like to connect with
+db:
