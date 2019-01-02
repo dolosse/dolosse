@@ -1,0 +1,3 @@
+consumer_group: daq
+topic: test
+numThreads: 1
