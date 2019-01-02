@@ -1,5 +1,5 @@
-# Configuration file
-cfg.yaml
+# image files
+*.png
 
 # IDE Files
 .idea/

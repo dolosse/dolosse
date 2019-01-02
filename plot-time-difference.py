@@ -1,3 +1,4 @@
+import keyring
 import psycopg2
 import pandas as pd
 import threading
@@ -42,7 +43,7 @@ if __name__ == '__main__':
         cfg = yaml.safe_load(f)
 
     try:
-        connection = psycopg2.connect(user=cfg['username'], password=cfg['password'],
+        connection = psycopg2.connect(user=cfg['username'], password=keyring.get_password(cfg['host'], cfg['username']),
                                       host=cfg['host'], port=cfg['port'], database=cfg['db'])
         cursor = connection.cursor()
         cursor.execute('select time from id00;')
@@ -60,8 +61,3 @@ if __name__ == '__main__':
         print('Main Thread - Executed in ', (time.time() - start)/60, " minutes.")
     except psycopg2.Error as ex:
         print("Error connecting to db.", ex)
-
-# ax = df.plot.hist(bins=5000)
-# ax.set_xlim([0, 5000])
-# ax.set_ylim([0, 8000])
-# ax.get_figure().savefig('time-difference-id10.png')

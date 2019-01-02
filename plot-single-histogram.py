@@ -1,3 +1,4 @@
+import keyring
 import psycopg2
 import pandas as pd
 import yaml
@@ -8,7 +9,7 @@ if __name__ == "__main__":
         cfg = yaml.safe_load(f)
 
     try:
-        connection = psycopg2.connect(user=cfg['username'], password=cfg['password'],
+        connection = psycopg2.connect(user=cfg['username'], password=keyring.get_password(cfg['host'], cfg['username']),
                                       host=cfg['host'], port=cfg['port'], database=cfg['db'])
         cursor = connection.cursor()
         cursor.execute('select energy from id10 where energy > 0 and energy < 10000;')
