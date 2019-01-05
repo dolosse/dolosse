@@ -3,6 +3,8 @@ import logging
 from statistics import mean
 import threading
 import time
+from array import array
+import pickle
 
 
 class ConsumerWorker(threading.Thread):
@@ -43,7 +45,7 @@ class ConsumerWorker(threading.Thread):
                 idle_time_in_interval += self.cfg['consumer']['poll_timeout_s']
             elif not msg.error():
                 message_processing_start_time = time.time()
-                logging.info("'" + msg.value().decode() + "'")
+                logging.info(pickle.loads(msg.value()))
                 message_processing_times.append(time.time() - message_processing_start_time)
             elif msg.error().code() != KafkaError._PARTITION_EOF:
                 print(msg.error())
