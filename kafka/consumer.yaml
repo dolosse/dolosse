@@ -1,3 +1,42 @@
-consumer_group: daq
-topic: test
-numThreads: 1
+consumer:
+  bootstrap_servers: localhost
+  auto_offset_reset: earliest
+  auto_commit_interval_ms: 500
+  poll_timeout_s: 0.5
+  group: daq
+  topic: test
+  number_of_threads: 1
+  stats_interval_s: 2
+
+logging:
+  version: 1
+  disable_existing_loggers: False
+
+  formatters:
+    simple:
+      format: <-
+        %(asctime)s - %(name)s - %(levelname)s -  %(message)s
+
+  handlers:
+    default:
+      class: logging.handlers.TimedRotatingFileHandler
+      level: DEBUG
+      formatter: simple
+      filename: consumer.log
+      interval: 1
+      when: h
+
+    console:
+      class: logging.StreamHandler
+      level: DEBUG
+      formatter: simple
+      stream: ext://sys.stdout
+
+  loggers:
+    ConsumerWorker:
+      level: INFO
+      handlers: [default, console]
+
+  root:
+    level: INFO
+    handlers: [default]
