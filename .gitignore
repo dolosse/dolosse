@@ -1,6 +1,9 @@
 # image files
 *.png
 
+# log files
+*.log.*
+
 # IDE Files
 .idea/
 
