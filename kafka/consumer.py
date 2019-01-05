@@ -16,7 +16,7 @@ class ServiceExit(Exception):
 
 
 def service_shutdown(signum, frame):
-    logging.info('Caught shutdown signal %d' % signum)
+    logging.info('Caught shutdown signal, SIGNUM=%d' % signum)
     raise ServiceExit
 
 
@@ -73,3 +73,4 @@ if __name__ == '__main__':
                 pass
     except ServiceExit:
         shutdown_threads(threads)
+    logging.info("See you space cowboy!")

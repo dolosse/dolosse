@@ -14,8 +14,16 @@ logging:
 
   formatters:
     simple:
-      format: <-
-        %(asctime)s - %(name)s - %(levelname)s -  %(message)s
+      format: >-
+        {
+          'time': %(asctime)s,
+          'module_name': %(module)s,
+          'level': %(levelname)s,
+          'pid': %(process)s,
+          'thread': %(threadName)s,
+          'loggerName': %(name)s,
+          'message': %(message)s
+        }
 
   handlers:
     default:
