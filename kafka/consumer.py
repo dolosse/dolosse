@@ -53,7 +53,7 @@ if __name__ == '__main__':
     start = time.time()
     try:
         for i in range(0, cfg['consumer']['number_of_threads']):
-            t = ConsumerWorker(cfg=cfg, name="ConsumerThread-"+str(i))
+            t = ConsumerWorker(cfg=cfg, name="ConsumerThread-" + str(i))
             t.setDaemon(True)
             t.start()
             threads.append(t)
