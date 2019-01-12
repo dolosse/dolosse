@@ -8,14 +8,16 @@ data_block = b'DATA'
 end_of_file = b'EOF '
 buffer_padding = b'\xff\xff\xff\xff'
 
-files = ['D:/data/svp/kafka-tests/bagel-single-spill.pld',
-         'D:/data/svp/kafka-tests/kafka-data-test-0.pld',
-         'D:/data/utk/pixieworkshop/pulser_003.ldf']
+files = ['D:/data/svp/kafka-tests/kafka-data-test-0.pld',
+         'D:/data/svp/kafka-tests/bagel-single-spill.pld',
+         'D:/data/utk/pixieworkshop/pulser_003.ldf',
+         'D:/data/ithemba/bagel/runs/runBaGeL_337.pld',
+         'D:/data/anl/vandle2015/a135feb_12.ldf'
+         ]
 
 for file in files:
     print("Working on file: ", file)
-    num_data_blocks = num_end_of_file = num_buffer_padding = num_head_blocks = num_other_stuff = total_words = \
-        read_start_time = read_end_time = num_dir_blocks = 0
+    num_data_blocks = num_end_of_file = num_buffer_padding = num_head_blocks = num_other_stuff = total_words = num_dir_blocks = 0
     with io.open(file, 'rb') as f:
         read_start_time = time.time()
         while True:
@@ -31,13 +33,12 @@ for file in files:
                 elif chunk == buffer_padding:
                     num_buffer_padding += 1
                 elif chunk == head_block:
-                    num_head_blocks +=1
+                    num_head_blocks += 1
                 else:
                     num_other_stuff += 1
                     # print(chunk, struct.unpack('i', chunk)[0])
             else:
                 break
-        read_end_time = time.time()
         print("Basic statistics for the file:",
               "\n\tNumber of Dirs         : ", num_dir_blocks,
               "\n\tNumber of Head         : ", num_head_blocks,
@@ -45,6 +46,6 @@ for file in files:
               "\n\tNumber of Buffer Pads  : ", num_buffer_padding,
               "\n\tNumber of End of Files : ", num_end_of_file,
               "\n\tTotal Words in File    : ", total_words,
-              "\n\tTime To Read (s)       : ", read_end_time - read_start_time,)
+              "\n\tTime To Read (s)       : ", time.time() - read_start_time, )
 
     f.close()
