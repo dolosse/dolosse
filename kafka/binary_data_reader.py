@@ -1,12 +1,17 @@
 """
-Reads binary data from files or other sources
+file: binary_data_reader.py
+brief: Reads binary data from files or other sources
+author: S. V. Paulauskas
+date: January 22, 2019
 """
 import io
-import json
 import os
+import keyring
+import psycopg2
+from psycopg2 import pool
 import struct
 import time
-import threading
+import yaml
 
 from pixie16.list_mode_data_mask import ListModeDataMask
 from pixie16.list_mode_data_decoder import ListModeDataDecoder
@@ -34,13 +39,26 @@ def read_pld_header(stream):
         'title': stream.read(struct.unpack('I', stream.read(WORD))[0]).decode()
     }
 
+
 FILES = [
     # 'D:/data/svp/kafka-tests/kafka-data-test-0.pld',
-     'D:/data/svp/kafka-tests/bagel-single-spill-1.pld',
+    # 'D:/data/svp/kafka-tests/bagel-single-spill-1.pld',
     #    'D:/data/utk/pixieworkshop/pulser_003.ldf',
-    #'D:/data/ithemba/bagel/runs/runBaGeL_337.pld',
+    'D:/data/ithemba/bagel/runs/runBaGeL_337.pld',
     #    'D:/data/anl/vandle2015/a135feb_12.ldf'
 ]
+
+with open('consumer.yaml') as f:
+    cfg = yaml.safe_load(f)
+
+db_connection_pool = psycopg2.pool.ThreadedConnectionPool(1, 20,
+                                                          user=cfg['database']['username'],
+                                                          password=keyring.get_password(
+                                                              cfg['database']['host'],
+                                                              cfg['database']['username']),
+                                                          host=cfg['database']['host'],
+                                                          port=cfg['database']['port'],
+                                                          database=cfg['database']['name'])
 
 for file in FILES:
     print("Working on file: ", file)
@@ -74,17 +92,17 @@ for file in FILES:
                             module_words = (struct.unpack('I', first_word)[0] - 2) * WORD
                             module_number = struct.unpack('I', buffer.read(WORD))[0]
 
-                            ListModeDataDecoder(io.BytesIO(buffer.read(module_words)), data_mask,
-                                                output_file).run()
-
-
-                            # thread = threading.thread(
-                            #     target=decode_data(io.BytesIO(buffer.read(module_words)), data_mask,
-                            #                        output_file))
-                            # thread.start()
-                            # threads.append(thread)
-
-                            # output_file.write(json.dumps(data, indent=2) + ",\n")
+                            t = ListModeDataDecoder(io.BytesIO(buffer.read(module_words)),
+                                                    data_mask,
+                                                    db_connection_pool.getconn(),
+                                                    'run337')
+                            t.start()
+                            threads.append(t)
+                        while len(threads):
+                            for thread in threads:
+                                if thread.finished:
+                                    db_connection_pool.putconn(thread.db_connection)
+                                thread.join()
                 elif chunk == DIR_BLOCK:
                     num_dir_blocks += 1
                 elif chunk == END_OF_FILE:

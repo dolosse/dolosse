@@ -1,3 +1,9 @@
+database:
+  host: localhost
+  port: 5432
+  username: postgres
+  name: bagel
+
 consumer:
   bootstrap_servers: localhost
   auto_offset_reset: latest

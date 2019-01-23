@@ -9,9 +9,10 @@ import io
 class ConsumerWorker(threading.Thread):
     logger = logging.getLogger(__name__)
 
-    def __init__(self, cfg, name):
+    def __init__(self, cfg, name, db_connection):
         threading.Thread.__init__(self)
 
+        self.db_connection = db_connection
         self.shutdown_flag = threading.Event()
         self.handled = False
         self.cfg = cfg

@@ -1,13 +1,13 @@
 """
-    file: list_mode_data_decoder.py
-    brief: Decodes binary data produced by an XIA Pixie16 module
-    author: S. V. Paulauskas
-    date: January 17, 2019
+file: list_mode_data_decoder.py
+brief: Decodes binary data produced by an XIA Pixie16 module
+author: S. V. Paulauskas
+date: January 17, 2019
 """
 from functools import partial
-import json
 import struct
 import threading
+import psycopg2
 
 
 class ListModeDataDecoder(threading.Thread):
@@ -16,16 +16,29 @@ class ListModeDataDecoder(threading.Thread):
     list mode data.
     """
 
-    def __init__(self, stream, mask, outfile):
+    def __init__(self, stream, mask, db_connection, table):
+        """
+        Constructor
+        :param stream: The stream that we'll read data from
+        :param mask: the data mask that we'll use to decode data
+        :param db_connection: the database connection for us to put data into
+        :param table: the table name storing raw data.
+        """
         threading.Thread.__init__(self)
         self.stream = stream
         self.mask = mask
-        self.outfile = outfile
+        if not db_connection:
+            raise ConnectionError("Database connection could not be established during decoding!")
+        self.db_connection = db_connection
+        self.table = table
+        self.cursor = db_connection.cursor()
+        self.finished = False
 
     def run(self):
         """ Decodes data from Pixie16 binary data stream """
         word = 4
-        decoded_data = []
+
+        inserts = ""
         for chunk in iter(partial(self.stream.read, word), b''):
             word0 = struct.unpack('I', chunk)[0]
             word1 = struct.unpack('I', self.stream.read(word))[0]
@@ -33,9 +46,9 @@ class ListModeDataDecoder(threading.Thread):
             word3 = struct.unpack('I', self.stream.read(word))[0]
 
             data = {
-                'crate': (word0 & self.mask.crate()[0]) >> self.mask.crate()[1],
-                'slot': (word0 & self.mask.slot()[0]) >> self.mask.slot()[1],
                 'channel': (word0 & self.mask.channel()[0]) >> self.mask.channel()[1],
+                'slot': (word0 & self.mask.slot()[0]) >> self.mask.slot()[1],
+                'crate': (word0 & self.mask.crate()[0]) >> self.mask.crate()[1],
                 'header_length': (word0 & self.mask.header_length()[0]) >>
                                  self.mask.header_length()[1],
                 'event_length': (word0 & self.mask.event_length()[0]) >>
@@ -56,7 +69,15 @@ class ListModeDataDecoder(threading.Thread):
                 'trace_out_of_range': (word3 & self.mask.trace_out_of_range()[0])
                                       >> self.mask.trace_out_of_range()[1]
             }
-            decoded_data.append(data)
-            decoded_data.append("\n")
-        #self.outfile.write(json.dumps(decoded_data))
-        #self.outfile.write("\n")
+            if data['trace_length'] == 32768:
+                data['trace_length'] = 0
+            inserts += "INSERT INTO %s VALUES(" % self.table
+            inserts += "%(crate)s, %(slot)s, %(channel)s, %(header_length)s, " % data
+            inserts += "%(event_length)s, '%(finish_code)s', %(event_time_low)s, " % data
+            inserts += "%(event_time_high)s, %(cfd_fractional_time)s, " % data
+            inserts += "'%(cfd_trigger_source_bit)s', '%(cfd_forced_trigger_bit)s', " % data
+            inserts += "%(energy)s, %(trace_length)s, '%(trace_out_of_range)s'); " % data
+
+        self.cursor.execute(inserts)
+        self.db_connection.commit()
+        self.finished = True
