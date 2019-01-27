@@ -29,11 +29,12 @@ class ListModeDataDecoder(threading.Thread):
         threading.Thread.__init__(self)
         self.stream = stream
         self.mask = mask
-        if not db_connection:
+        if db_connection:
+            self.db_connection = db_connection
+            self.cursor = db_connection.cursor()
+        else:
             raise ConnectionError("Database connection could not be established during decoding!")
-        self.db_connection = db_connection
         self.table = table
-        self.cursor = db_connection.cursor()
         self.finished = False
 
     def run(self):
@@ -78,6 +79,6 @@ class ListModeDataDecoder(threading.Thread):
             inserts += "'%(cfd_trigger_source_bit)s', '%(cfd_forced_trigger_bit)s', " % decoded_data
             inserts += "%(energy)s, %(trace_length)s, '%(trace_out_of_range)s'); " % decoded_data
 
-        # self.cursor.execute(inserts)
-        # self.db_connection.commit()
+        self.cursor.execute(inserts)
+        self.db_connection.commit()
         self.finished = True

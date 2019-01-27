@@ -1,10 +1,16 @@
+"""
+file: consumer.py
+brief: An example kafka consumer that consumes Pixie16 data from a topic
+author: S. V. Paulauskas
+date: January 01, 2019
+"""
 import logging
 from logging.config import dictConfig
 import signal
 import time
 import yaml
 
-from ConsumerWorker import ConsumerWorker
+from pixie16.kafka_consumer import ConsumerWorker
 
 
 class ServiceExit(Exception):
@@ -62,7 +68,7 @@ if __name__ == '__main__':
                 if len(threads) > 0:
                     for t in threads:
                         if not t.isAlive():
-                            # get results from thread
+                            # TODO : Get results from thread
                             t.handled = True
                     threads = [t for t in threads if not t.handled]
                 else:
