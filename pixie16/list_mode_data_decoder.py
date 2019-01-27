@@ -9,6 +9,8 @@ import struct
 import threading
 import psycopg2
 
+import constants.data as data
+
 
 class ListModeDataDecoder(threading.Thread):
     """
@@ -36,16 +38,14 @@ class ListModeDataDecoder(threading.Thread):
 
     def run(self):
         """ Decodes data from Pixie16 binary data stream """
-        word = 4
-
         inserts = ""
-        for chunk in iter(partial(self.stream.read, word), b''):
+        for chunk in iter(partial(self.stream.read, data.WORD), b''):
             word0 = struct.unpack('I', chunk)[0]
-            word1 = struct.unpack('I', self.stream.read(word))[0]
-            word2 = struct.unpack('I', self.stream.read(word))[0]
-            word3 = struct.unpack('I', self.stream.read(word))[0]
+            word1 = struct.unpack('I', self.stream.read(data.WORD))[0]
+            word2 = struct.unpack('I', self.stream.read(data.WORD))[0]
+            word3 = struct.unpack('I', self.stream.read(data.WORD))[0]
 
-            data = {
+            decoded_data = {
                 'channel': (word0 & self.mask.channel()[0]) >> self.mask.channel()[1],
                 'slot': (word0 & self.mask.slot()[0]) >> self.mask.slot()[1],
                 'crate': (word0 & self.mask.crate()[0]) >> self.mask.crate()[1],
@@ -69,15 +69,15 @@ class ListModeDataDecoder(threading.Thread):
                 'trace_out_of_range': (word3 & self.mask.trace_out_of_range()[0])
                                       >> self.mask.trace_out_of_range()[1]
             }
-            if data['trace_length'] == 32768:
-                data['trace_length'] = 0
+            if decoded_data['trace_length'] == 32768:
+                decoded_data['trace_length'] = 0
             inserts += "INSERT INTO %s VALUES(" % self.table
-            inserts += "%(crate)s, %(slot)s, %(channel)s, %(header_length)s, " % data
-            inserts += "%(event_length)s, '%(finish_code)s', %(event_time_low)s, " % data
-            inserts += "%(event_time_high)s, %(cfd_fractional_time)s, " % data
-            inserts += "'%(cfd_trigger_source_bit)s', '%(cfd_forced_trigger_bit)s', " % data
-            inserts += "%(energy)s, %(trace_length)s, '%(trace_out_of_range)s'); " % data
+            inserts += "%(crate)s, %(slot)s, %(channel)s, %(header_length)s, " % decoded_data
+            inserts += "%(event_length)s, '%(finish_code)s', %(event_time_low)s, " % decoded_data
+            inserts += "%(event_time_high)s, %(cfd_fractional_time)s, " % decoded_data
+            inserts += "'%(cfd_trigger_source_bit)s', '%(cfd_forced_trigger_bit)s', " % decoded_data
+            inserts += "%(energy)s, %(trace_length)s, '%(trace_out_of_range)s'); " % decoded_data
 
-        self.cursor.execute(inserts)
-        self.db_connection.commit()
+        # self.cursor.execute(inserts)
+        # self.db_connection.commit()
         self.finished = True

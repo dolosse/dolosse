@@ -8,43 +8,22 @@ import io
 import os
 import keyring
 import psycopg2
-from psycopg2 import pool
 import struct
 import time
 import yaml
 
+from psycopg2 import pool
+
+import constants.data as data
 from pixie16.list_mode_data_mask import ListModeDataMask
 from pixie16.list_mode_data_decoder import ListModeDataDecoder
-
-DIR_BLOCK = b'DIR '
-HEAD_BLOCK = b'HEAD'
-DATA_BLOCK = b'DATA'
-END_OF_FILE = b'EOF '
-END_OF_BUFFER = b'EOB '
-BUFFER_PADDING = b'\xff\xff\xff\xff'
-# There are 4 bytes in 1 32-bit word, this will be the basis for our reads.
-WORD = 4
-
-
-def read_pld_header(stream):
-    """ Reads the header from a UTK PLD file. """
-    return {
-        'run_number': struct.unpack('I', stream.read(WORD))[0],
-        'max_spill_size': struct.unpack('I', stream.read(WORD))[0],
-        'run_time': struct.unpack('I', stream.read(WORD))[0],
-        'format': stream.read(WORD * 4).decode(),
-        'facility': stream.read(WORD * 4).decode(),
-        'start_date': stream.read(WORD * 6).decode(),
-        'end_date': stream.read(WORD * 6).decode(),
-        'title': stream.read(struct.unpack('I', stream.read(WORD))[0]).decode()
-    }
-
+from data_formats.pld import header
 
 FILES = [
     # 'D:/data/svp/kafka-tests/kafka-data-test-0.pld',
-    # 'D:/data/svp/kafka-tests/bagel-single-spill-1.pld',
+     'D:/data/svp/kafka-tests/bagel-single-spill-1.pld',
     #    'D:/data/utk/pixieworkshop/pulser_003.ldf',
-    'D:/data/ithemba/bagel/runs/runBaGeL_337.pld',
+    #'D:/data/ithemba/bagel/runs/runBaGeL_337.pld',
     #    'D:/data/anl/vandle2015/a135feb_12.ldf'
 ]
 
@@ -74,44 +53,44 @@ for file in FILES:
         data_mask = ListModeDataMask(250, 30474)
 
         while True:
-            chunk = f.read(WORD)
+            chunk = f.read(data.WORD)
             if chunk:
-                if chunk == DATA_BLOCK:
+                if chunk == data.DATA_BLOCK:
                     num_data_blocks += 1
 
                     # First word in a PLD data buffer is the total size of the buffer
-                    total_data_buffer_size = (struct.unpack('I', f.read(WORD))[0]) * WORD
+                    total_data_buffer_size = (struct.unpack('I', f.read(data.WORD))[0]) * data.WORD
 
                     # Reads the entire data buffer in one shot.
                     with io.BytesIO(f.read(total_data_buffer_size)) as buffer:
                         threads = []
                         while True:
-                            first_word = buffer.read(WORD)
+                            first_word = buffer.read(data.WORD)
                             if first_word == b'':
                                 break
-                            module_words = (struct.unpack('I', first_word)[0] - 2) * WORD
-                            module_number = struct.unpack('I', buffer.read(WORD))[0]
+                            module_words = (struct.unpack('I', first_word)[0] - 2) * data.WORD
+                            module_number = struct.unpack('I', buffer.read(data.WORD))[0]
 
                             t = ListModeDataDecoder(io.BytesIO(buffer.read(module_words)),
                                                     data_mask,
                                                     db_connection_pool.getconn(),
-                                                    'run337')
+                                                    'test')
+                            t.setDaemon(True)
                             t.start()
                             threads.append(t)
                         while len(threads):
                             for thread in threads:
                                 if thread.finished:
                                     db_connection_pool.putconn(thread.db_connection)
-                                thread.join()
-                elif chunk == DIR_BLOCK:
+                elif chunk == data.DIR_BLOCK:
                     num_dir_blocks += 1
-                elif chunk == END_OF_FILE:
+                elif chunk == data.END_OF_FILE:
                     num_end_of_file += 1
-                elif chunk == BUFFER_PADDING:
+                elif chunk == data.BUFFER_PADDING:
                     num_buffer_padding += 1
-                elif chunk == HEAD_BLOCK:
+                elif chunk == data.HEAD_BLOCK:
                     num_head_blocks += 1
-                    print(read_pld_header(f))
+                    print(header.PldHeader().read_header(f))
                 else:
                     print(struct.unpack('I', chunk)[0])
                     num_unknown += 1
