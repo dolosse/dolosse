@@ -1,45 +1,41 @@
-<!--- Provide a general summary of the issue/feature/story in the Title above -->
+[//]: # (Provide a general summary of the issue/feature/story in the Title above)
 ## Expected Behavior
-<!--- If you're describing a bug, tell us what should happen -->
-<!--- If you're suggesting a change/improvement, tell us how it should work -->
+[//]: # (If you're describing a bug, tell us what should happen.)
+[//]: # (If you're suggesting a change/improvement, tell us how it should work.)
 
 ## Current Behavior
-<!--- If describing a bug, tell us what happens instead of the expected behavior -->
-<!--- If suggesting a change/improvement, explain the difference from current behavior -->
+[//]: # (If describing a bug, tell us what happens instead of the expected behavior.)
+[//]: # (If suggesting a change/improvement, explain the difference from current behavior.)
 
 ## Context
-<!--- How has this issue affected you? What are you trying to accomplish? -->
-<!--- Providing context helps us come up with a solution that is most useful in the real world -->
+[//]: # (How has this issue affected you? What are you trying to accomplish?)
+[//]: # (Providing context helps us come up with a solution that is most useful in the real world.)
 
 ## Possible Solution (optional)
-<!--- Not obligatory, but suggest a fix/reason for the bug, -->
-<!--- or ideas how to implement the addition or change -->
+[//]: # (Not obligatory, but suggest a fix/reason for the bug,)
+[//]: # (or ideas how to implement the addition or change)
 
 ## Acceptance Criteria
-<!-- This will help determine if a PR is accepted or not. -->
+[//]: # (This will help determine if a PR is accepted or not.)
 - [ ] 
 - [ ] 
 
 ## Bug Report
 ### Your Environment
-<!--- Include as many relevant details about the environment you experienced the bug in -->
+[//]: # (Include as many relevant details about your environment.)
 | Component | Value  |
 |--|--|
 |Operating system | <Your OS Here> |
 |Kernel Version   | <output of `uname -r`> |
-|CMake Version    | <output of `cmake --version`> |
-|GCC Version      | <output of `gcc --version`> |
+|Python           | <output of `python --version`> |
 |ROOT Version     | <optional output of `root-config --version`> |
-|GSL Version      | <optional output of `gsl-config --version`> |
 
 ### Steps to Reproduce
-<!--- Provide a link to a live example, or an unambiguous set of steps to -->
-<!--- reproduce this bug. Include code to reproduce, if relevant -->
+[//]: # (Provide a link to a live example, or an unambiguous set of steps to)
+[//]: # (reproduce this bug. Include code to reproduce, if relevant)
 1. 
 2.
 
 ### Screenshots
-<!--- Provide any screenshots of your error here -->
 
 ### Error Logs
-<!--- Please attach any error logs here. --> 
