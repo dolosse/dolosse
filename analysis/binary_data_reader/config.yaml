@@ -4,16 +4,6 @@ database:
   username: postgres
   name: bagel
 
-consumer:
-  bootstrap_servers: localhost
-  auto_offset_reset: latest
-  auto_commit_interval_ms: 500
-  poll_timeout_s: 0.5
-  group: pixie16
-  topic: daq
-  number_of_threads: 4
-  stats_interval_s: 10
-
 logging:
   version: 1
   disable_existing_loggers: False
