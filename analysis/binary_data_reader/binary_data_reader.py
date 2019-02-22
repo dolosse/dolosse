@@ -16,8 +16,8 @@ import yaml
 from psycopg2 import pool
 
 import constants.data as data
-from pixie16.list_mode_data_mask import ListModeDataMask
-from pixie16.list_mode_data_decoder import ListModeDataDecoder
+from hardware.xia.pixie16.list_mode_data_mask import ListModeDataMask
+from hardware.xia.pixie16.list_mode_data_decoder import ListModeDataDecoder
 from data_formats.pld import header
 from data_formats.ldf import header as ldf_header
 from data_formats.ldf import constants as ldf_constants
@@ -32,7 +32,7 @@ if __name__ == "__main__":
         #'D:/data/utk/pixieworkshop/pulser_003.ldf'
     ]
 
-    with open('consumer.yaml') as f:
+    with open('config.yaml') as f:
         cfg = yaml.safe_load(f)
 
     db_connection_pool = \

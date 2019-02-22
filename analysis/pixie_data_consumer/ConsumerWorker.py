@@ -1,3 +1,9 @@
+"""
+file: ConsumerWorker.py
+brief: A generic Kafka consumer that consumes binary messages.
+author: S. V. Paulauskas
+date: February 22, 2019
+"""
 from confluent_kafka import Consumer, KafkaError
 import logging
 from statistics import mean
@@ -5,6 +11,7 @@ import threading
 import time
 import struct
 import io
+
 
 class ConsumerWorker(threading.Thread):
     logger = logging.getLogger(__name__)
@@ -25,8 +32,10 @@ class ConsumerWorker(threading.Thread):
             self.consumer = Consumer({'bootstrap.servers': cfg['consumer']['bootstrap_servers'],
                                       'group.id': cfg['consumer']['group'],
                                       'default.topic.config': {
-                                          'auto.offset.reset': cfg['consumer']['auto_offset_reset']},
-                                      'auto.commit.interval.ms': cfg['consumer']['auto_commit_interval_ms']})
+                                          'auto.offset.reset': cfg['consumer'][
+                                              'auto_offset_reset']},
+                                      'auto.commit.interval.ms': cfg['consumer'][
+                                          'auto_commit_interval_ms']})
         except Exception as ex:
             pass
 
@@ -75,6 +84,7 @@ class ConsumerWorker(threading.Thread):
             elif self.shutdown_flag.is_set():
                 logging.info("Thread received the shutdown signal, wrapping up...")
             elif self.handled:
-                logging.warning("Thread became inactive for some reason, check logs for more information!")
+                logging.warning(
+                    "Thread became inactive for some reason, check logs for more information!")
         self.consumer.close()
         logging.info("Thread Finished!")

@@ -13,8 +13,8 @@ import threading
 import time
 import io
 
-from pixie16.list_mode_data_mask import ListModeDataMask
-from pixie16.list_mode_data_decoder import ListModeDataDecoder
+from hardware.xia.pixie16.list_mode_data_mask import ListModeDataMask
+from hardware.xia.pixie16.list_mode_data_decoder import ListModeDataDecoder
 
 
 class ConsumerWorker(threading.Thread):
