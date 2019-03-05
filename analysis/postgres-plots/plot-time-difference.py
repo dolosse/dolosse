@@ -1,9 +1,16 @@
+"""
+file: plot-time-difference.py
+brief: Initial attempt at doing event correlation on a table.
+author: S. V. Paulauskas
+date: February 22, 2019
+"""
 import keyring
 import psycopg2
 import pandas as pd
 import threading
 import time
 import yaml
+import sys
 
 
 def chunk_data_frame(frame, n):
@@ -39,7 +46,7 @@ def run(conn, frame):
 
 
 if __name__ == '__main__':
-    with open('cfg.yaml') as f:
+    with open(sys.argv[1]) as f:
         cfg = yaml.safe_load(f)
 
     try:
