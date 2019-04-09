@@ -10,7 +10,7 @@ import signal
 import time
 import yaml
 
-from pixie16.kafka_consumer import ConsumerWorker
+from hardware.xia.pixie16.kafka_consumer import ConsumerWorker
 
 
 class ServiceExit(Exception):

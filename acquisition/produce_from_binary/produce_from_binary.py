@@ -6,18 +6,13 @@ date: January 27, 2019
 """
 import io
 import os
-import keyring
-import psycopg2
 import struct
 import time
 import yaml
 
 from confluent_kafka import Producer
-from psycopg2 import pool
 
 import constants.data as data
-from pixie16.list_mode_data_mask import ListModeDataMask
-from pixie16.list_mode_data_decoder import ListModeDataDecoder
 from data_formats.pld import header
 
 def delivery_report(err, msg):
@@ -31,7 +26,7 @@ def delivery_report(err, msg):
 
 if __name__ == '__main__':
     cfg = dict()
-    with open('producer.yaml') as f:
+    with open('produce_from_binary.yaml') as f:
         cfg = yaml.safe_load(f)
 
     p = Producer({'bootstrap.servers': cfg['producer']['bootstrap_servers']})

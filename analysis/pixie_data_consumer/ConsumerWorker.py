@@ -1,28 +1,25 @@
 """
-file: kafka_consumer.py
-brief: A Kafka consumer that processes Pixie16 data. Creates a thread for each partition plus extra.
+file: ConsumerWorker.py
+brief: A generic Kafka consumer that consumes binary messages.
 author: S. V. Paulauskas
-date: January 27, 2019
+date: February 22, 2019
 """
 from confluent_kafka import Consumer, KafkaError
 import logging
-import keyring
 from statistics import mean
-import psycopg2
 import threading
 import time
+import struct
 import io
-
-from pixie16.list_mode_data_mask import ListModeDataMask
-from pixie16.list_mode_data_decoder import ListModeDataDecoder
 
 
 class ConsumerWorker(threading.Thread):
     logger = logging.getLogger(__name__)
 
-    def __init__(self, cfg, name):
+    def __init__(self, cfg, name, db_connection):
         threading.Thread.__init__(self)
 
+        self.db_connection = db_connection
         self.shutdown_flag = threading.Event()
         self.handled = False
         self.cfg = cfg
@@ -51,26 +48,21 @@ class ConsumerWorker(threading.Thread):
         stats_interval_start_time = time.time()
         message_processing_times = []
 
-        data_mask = ListModeDataMask(250, 30474)
-        connection = psycopg2.connect(user=self.cfg['database']['username'],
-                                      password=keyring.get_password(
-                                          self.cfg['database']['host'],
-                                          self.cfg['database']['username']),
-                                      host=self.cfg['database']['host'],
-                                      port=self.cfg['database']['port'],
-                                      database=self.cfg['database']['name'])
-
         while not self.shutdown_flag.is_set() or self.handled:
             msg = self.consumer.poll(timeout=self.cfg['consumer']['poll_timeout_s'])
             if msg is None:
                 idle_time_in_interval += self.cfg['consumer']['poll_timeout_s']
             elif not msg.error():
                 message_processing_start_time = time.time()
-                logging.info("Begin processing data buffer")
-
-                ListModeDataDecoder(io.BytesIO(msg.value()),
-                                    data_mask, connection, 'test').run()
-
+                print("got message and sending to output file now")
+                logging.info(msg.value())
+                with io.BytesIO(msg.value()) as buffer:
+                    while True:
+                        chunk = buffer.read(4)
+                        if chunk:
+                            print(struct.unpack('i', chunk)[0])
+                        else:
+                            break
                 message_processing_times.append(time.time() - message_processing_start_time)
             elif msg.error().code() != KafkaError._PARTITION_EOF:
                 print(msg.error())
