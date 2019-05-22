@@ -31,7 +31,7 @@ class ListModeDataMaskTestCase(unittest.TestCase):
             for freq in frequencies:
                 if firmware < 34688:
                     self.assertEqual(ListModeDataMask(freq, firmware).trace_length(),
-                                     [0xFFFF0000, 16])
+                                     (0xFFFF0000, 16))
 
 
 if __name__ == '__main__':
