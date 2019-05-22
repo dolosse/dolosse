@@ -7,9 +7,59 @@ date: January 17, 2019
 from functools import partial
 import struct
 import threading
-import psycopg2
 
-import constants.data as data
+import dolosse.constants.data as data
+
+
+def decode_word_zero(word, mask):
+    """
+
+    :param word: The word that we're going to decode
+    :return: A dictionary containing the decoded information.
+    """
+    return {
+        'channel': (word & mask.channel()[0]) >> mask.channel()[1],
+        'slot': (word & mask.slot()[0]) >> mask.slot()[1],
+        'crate': (word & mask.crate()[0]) >> mask.crate()[1],
+        'header_length': (word & mask.header_length()[0]) >>
+                         mask.header_length()[1],
+        'event_length': (word & mask.event_length()[0]) >>
+                        mask.event_length()[1],
+        'finish_code': (word & mask.finish_code()[0]) >> mask.finish_code()[1]
+    }
+
+
+def decode_word_one(word, mask):
+    """
+    All Pixie16 firmwares use Word 1 as the low 32-bits of the time stamp
+    :param word: The word that we're not going to do anything with.
+    :return: The input word
+    """
+    return word
+
+
+def decode_word_two(word, mask):
+    print(word)
+
+
+def decode_word_three(word, mask):
+    print(word)
+
+
+def decode_external_timestamps():
+    print("decoding timestamps")
+
+
+def decode_qdc():
+    print("decoding qdc")
+
+
+def decode_energy_sums():
+    print("decoding energysums")
+
+
+def decode_trace():
+    print("decoding trace")
 
 
 class ListModeDataDecoder(threading.Thread):
@@ -18,33 +68,25 @@ class ListModeDataDecoder(threading.Thread):
     list mode data.
     """
 
-    def __init__(self, stream, mask, db_connection, table):
+    def __init__(self, stream, mask):
         """
         Constructor
         :param stream: The stream that we'll read data from
         :param mask: the data mask that we'll use to decode data
-        :param db_connection: the database connection for us to put data into
-        :param table: the table name storing raw data.
         """
         threading.Thread.__init__(self)
         self.stream = stream
         self.mask = mask
-        if db_connection:
-            self.db_connection = db_connection
-            self.cursor = db_connection.cursor()
-        else:
-            raise ConnectionError("Database connection could not be established during decoding!")
-        self.table = table
         self.finished = False
 
     def run(self):
         """ Decodes data from Pixie16 binary data stream """
-        inserts = ""
+        # TODO : Will need to have it create a list of the dictionaries and return that list.
         for chunk in iter(partial(self.stream.read, data.WORD), b''):
-            word0 = struct.unpack('I', chunk)[0]
-            word1 = struct.unpack('I', self.stream.read(data.WORD))[0]
-            word2 = struct.unpack('I', self.stream.read(data.WORD))[0]
-            word3 = struct.unpack('I', self.stream.read(data.WORD))[0]
+            dict0 = decode_word_zero(struct.unpack('I', chunk)[0], self.mask)
+            dict1 = decode_word_one(struct.unpack('I', self.stream.read(data.WORD))[0], self.mask)
+            dict2 = decode_word_two(struct.unpack('I', self.stream.read(data.WORD))[0], self.mask)
+            dict3 = decode_word_three(struct.unpack('I', self.stream.read(data.WORD))[0], self.mask)
 
             decoded_data = {
                 'channel': (word0 & self.mask.channel()[0]) >> self.mask.channel()[1],
@@ -70,15 +112,4 @@ class ListModeDataDecoder(threading.Thread):
                 'trace_out_of_range': (word3 & self.mask.trace_out_of_range()[0])
                                       >> self.mask.trace_out_of_range()[1]
             }
-            if decoded_data['trace_length'] == 32768:
-                decoded_data['trace_length'] = 0
-            inserts += "INSERT INTO %s VALUES(" % self.table
-            inserts += "%(crate)s, %(slot)s, %(channel)s, %(header_length)s, " % decoded_data
-            inserts += "%(event_length)s, '%(finish_code)s', %(event_time_low)s, " % decoded_data
-            inserts += "%(event_time_high)s, %(cfd_fractional_time)s, " % decoded_data
-            inserts += "'%(cfd_trigger_source_bit)s', '%(cfd_forced_trigger_bit)s', " % decoded_data
-            inserts += "%(energy)s, %(trace_length)s, '%(trace_out_of_range)s'); " % decoded_data
-
-        self.cursor.execute(inserts)
-        self.db_connection.commit()
         self.finished = True

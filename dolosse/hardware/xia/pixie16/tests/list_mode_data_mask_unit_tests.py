@@ -5,7 +5,7 @@ author: S. V. Paulauskas
 date: April 25, 2019
 """
 import unittest
-from hardware.xia.pixie16.list_mode_data_mask import ListModeDataMask
+from dolosse.hardware.xia.pixie16.list_mode_data_mask import ListModeDataMask
 
 firmwares = [17562, 20466, 27361, 29432, 30474, 30980, 30981, 34688,
              34703, 35921]
@@ -31,7 +31,7 @@ class ListModeDataMaskTestCase(unittest.TestCase):
             for freq in frequencies:
                 if firmware < 34688:
                     self.assertEqual(ListModeDataMask(freq, firmware).trace_length(),
-                                     (0xFFFF0000, 16))
+                                     [0xFFFF0000, 16])
 
 
 if __name__ == '__main__':

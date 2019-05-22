@@ -5,13 +5,14 @@ author: S. V. Paulauskas
 date: March 5, 2019
 """
 import unittest
-import hardware.xia.pixie16.list_mode_data_decoder as lmdd
-import hardware.xia.pixie16.list_mode_data_mask as lmdm
+
+import dolosse.hardware.xia.pixie16.list_mode_data_decoder as decoder
+import dolosse.hardware.xia.pixie16.list_mode_data_mask as lmdm
 
 
 class ListModeDataDecoderTestCase(unittest.TestCase):
     def setUp(self):
-        self.decoder = lmdd.ListModeDataDecoder(None, lmdm.ListModeDataMask(250, 30474))
+        self.mask = lmdm.ListModeDataMask(250, 30474)
 
     def test_decode_word_zero(self):
         self.assertEqual({
@@ -21,7 +22,7 @@ class ListModeDataDecoderTestCase(unittest.TestCase):
             'header_length': 4,
             'event_length': 4,
             'finish_code': 0
-        }, self.decoder.decode_word_zero(540717))
+        }, decoder.decode_word_zero(540717, self.mask))
 
 
 if __name__ == '__main__':
