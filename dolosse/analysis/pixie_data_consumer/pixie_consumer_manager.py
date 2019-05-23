@@ -5,12 +5,13 @@ author: S. V. Paulauskas
 date: January 01, 2019
 """
 import logging
-from logging.config import dictConfig
 import signal
 import time
+from logging.config import dictConfig
+
 import yaml
 
-from dolosse.analysis.pixie_data_consumer import ConsumerWorker
+from dolosse.analysis.pixie_data_consumer.kafka_consumer import KafkaConsumer
 
 
 def service_shutdown(signum, frame):
@@ -40,7 +41,7 @@ if __name__ == '__main__':
         threads = []
         start = time.time()
         for i in range(0, cfg['consumer']['number_of_threads']):
-            t = ConsumerWorker(cfg=cfg, name="ConsumerThread-" + str(i))
+            t = KafkaConsumer(cfg=cfg, name="ConsumerThread-" + str(i))
             t.setDaemon(True)
             t.start()
             threads.append(t)
@@ -48,7 +49,6 @@ if __name__ == '__main__':
             if len(threads) > 0:
                 threads = [t for t in threads if not t.isAlive()]
                 # TODO : Get results from thread
-
             else:
                 logging.critical("All threads have died.")
                 break
