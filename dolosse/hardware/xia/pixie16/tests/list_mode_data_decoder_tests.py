@@ -11,6 +11,7 @@ import dolosse.hardware.xia.pixie16.list_mode_data_decoder as decoder
 import dolosse.hardware.xia.pixie16.list_mode_data_mask as lmdm
 
 
+# TODO : We'll need to add tests to cover the major firmware revisions.
 class ListModeDataDecoderTestCase(unittest.TestCase):
     def setUp(self):
         self.mask = lmdm.ListModeDataMask(250, 30474)
