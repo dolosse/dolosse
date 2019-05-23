@@ -103,7 +103,7 @@ class ListModeDataDecoder(threading.Thread):
 
     def run(self):
         """ Decodes data from Pixie16 binary data stream """
-        # TODO : Will need to have it create a list of the dictionaries and return that list.
+        # TODO : Will need to add in decoding of optional header information
         decoded_data_list = []
         for chunk in iter(partial(self.stream.read, data.WORD), b''):
             decoded_data = decode_word_zero(struct.unpack('I', chunk)[0], self.mask)
@@ -114,5 +114,5 @@ class ListModeDataDecoder(threading.Thread):
                 decode_word_two(struct.unpack('I', self.stream.read(data.WORD))[0], self.mask))
             decoded_data.update(
                 decode_word_three(struct.unpack('I', self.stream.read(data.WORD))[0], self.mask))
-            print(decoded_data)
-        self.finished = True
+            decoded_data_list.append(decoded_data)
+        return decoded_data_list
