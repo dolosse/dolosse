@@ -4,20 +4,19 @@ brief: A Kafka consumer that processes Pixie16 data. Creates a thread for each p
 author: S. V. Paulauskas
 date: January 27, 2019
 """
-from confluent_kafka import Consumer, KafkaError
+from io import BytesIO
 import logging
-import keyring
-from statistics import mean
-import psycopg2
 import threading
 import time
-import io
+from statistics import mean
 
-from hardware.xia.pixie16.list_mode_data_mask import ListModeDataMask
-from hardware.xia.pixie16.list_mode_data_decoder import ListModeDataDecoder
+from confluent_kafka import Consumer, KafkaError
+
+from dolosse.hardware.xia.pixie16.list_mode_data_decoder import ListModeDataDecoder
+from dolosse.hardware.xia.pixie16.list_mode_data_mask import ListModeDataMask
 
 
-class ConsumerWorker(threading.Thread):
+class KafkaConsumer(threading.Thread):
     logger = logging.getLogger(__name__)
 
     def __init__(self, cfg, name):
@@ -52,13 +51,6 @@ class ConsumerWorker(threading.Thread):
         message_processing_times = []
 
         data_mask = ListModeDataMask(250, 30474)
-        connection = psycopg2.connect(user=self.cfg['database']['username'],
-                                      password=keyring.get_password(
-                                          self.cfg['database']['host'],
-                                          self.cfg['database']['username']),
-                                      host=self.cfg['database']['host'],
-                                      port=self.cfg['database']['port'],
-                                      database=self.cfg['database']['name'])
 
         while not self.shutdown_flag.is_set() or self.handled:
             msg = self.consumer.poll(timeout=self.cfg['consumer']['poll_timeout_s'])
@@ -68,8 +60,7 @@ class ConsumerWorker(threading.Thread):
                 message_processing_start_time = time.time()
                 logging.info("Begin processing data buffer")
 
-                ListModeDataDecoder(io.BytesIO(msg.value()),
-                                    data_mask, connection, 'test').run()
+                ListModeDataDecoder(BytesIO(msg.value()), data_mask).run()
 
                 message_processing_times.append(time.time() - message_processing_start_time)
             elif msg.error().code() != KafkaError._PARTITION_EOF:
