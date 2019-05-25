@@ -1,0 +1,12 @@
+language: python
+python:
+- '3.5'
+- '3.6'
+- 3.7-dev
+install:
+- pip install -r requirements.txt
+script:
+- python -m unittest discover -v ./ "*_tests.py"
+notifications:
+  slack:
+    secure: A38F09BTElv7C3Y3kHoU4vkbHE5kyrVpwTlBx4ARWYEEm4aXwh/I4Gs1U+V3yXJWHU6WiDi2hD6Vir9TAIThc01wTtrdr7g5atX+taWZK57zWJSGw6Hvl3NjI0u4D1IGQWZEnktw+09EIUARVqEskeoGK315Jm4pC658qwn3FAP5F5t4XlV5BnPyV9RwfiJf/i6I5WuezB2lTOnCDoqAtBpd4J6e8hjvaEsCtA0FSW7bSmC2S/vkXTrdy/T3bZCvvRh6LGFa15hv/M4BWeEDWLAOaFZPL12DwhR0Gqy1RoxUyMV07w+v3uvZjVp2sn4BSaFcIb5emO4SyUkiRHc5lRek3KQS3AoXvcF86tcJsHdhNzY0eev0RRIWjX1mcduw8OYJrauJfh6Fz68CtHzJZFm97DJ1qv/nZC9cog/oGH5cyGSwDle+/YCBsQL8ftxLElQ0s1mWQ5lAx9dUDIMtYEvE6XuAm/xY/5T4PcC4lp8dM76yyH1B6fYRZdHH+EEjO/qZhFMlAfZMQqNGJGdlsubmw2wCuuL7yX6Th+qXVsRSC1bswMldP5zh0ciGecgENnl/LTbGneQLgWxE8pw/Ve9xNfOXFlsXNMNQ3pSw+Hg0hszOUSUP+mh8Oqrq9YXGGwufAUjWOx8KpOOFTSF0Qr4P6Ob2Y0/kLAgQEOtE0Ac=
