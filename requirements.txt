@@ -1,0 +1,6 @@
+psycopg2-binary
+pyyaml
+confluent-kafka
+pyarrow
+pandas
+keyring
