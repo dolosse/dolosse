@@ -1,9 +1,9 @@
 # [Dolosse](https://github.com/dolosse/dolosse) - A Kafka based Data Acquisition System
 Copyright (c) 2018 - 2019, [S. V. Paulauskas](https://projectscience.tech)
 
-Dolosse uses modern tools such as Kafka and PostgreSQL to provide a scientific data acquisition 
-framework. The project is python based, which allows us to take advantage of a vast array of analysis
-libraries.
+Dolosse is a modern scientific data acquisition and analysis framework. We use Kafka as a messaging backend that allows 
+synchronization between acquisition systems. Using Kafka's messaging interface we can create a feedback loops between 
+analysis and acquisition systems. We're still working on developing the framework
 
 # Features
 * Digitizer interfaces (coming soon)
@@ -15,13 +15,18 @@ libraries.
        * Pixie-16 (released)
        * Pixie-4 and Pixie-Net (coming soon)
 * Runs on Linux and Windows Systems. 
+* Unpacks binary data formats:
+    * LDF (ORNL)
+    * PLD (UTK)
+    * EVT (coming soon) 
 
 # Documentation
 Our documentation is sparse right now since we're still getting off the ground. You can read about 
 the project motivation in [this presentation](https://docs.google.com/presentation/d/111I5qzSBoEeqXWFkZ2Doz_PpvOkBn-HIbGrVmhtsExg/edit?usp=sharing).
+You can also checkout the [wiki](https://github.com/dolosse/dolosse/wiki). 
 
 ## Support
-Checkout the [support] () page for more information. 
+Checkout the [support] (https://github.com/dolosse/dolosse/blob/master/.github/SUPPORT.md) page for more information. 
 
 # Installation
 There are a couple of ways to use the software. They depend on the goal that you're after. 
