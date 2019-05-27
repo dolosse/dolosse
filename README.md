@@ -1,5 +1,5 @@
 # [Dolosse](https://github.com/dolosse/dolosse) - A Kafka based Data Acquisition System
-Copyright (c) 2018 - 2019, [S. V. Paulauskas](https://projectscience.tech)
+Copyright (c) 2018 - 2019, [S. V. Paulauskas](https://projectscience.tech) and the Dolosse Collaboration.
 
 Dolosse is a modern scientific data acquisition and analysis framework. We use Kafka as a messaging backend that allows 
 synchronization between acquisition systems. Using Kafka's messaging interface we can create a feedback loops between 
