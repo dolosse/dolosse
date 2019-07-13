@@ -1,7 +1,5 @@
 # [Dolosse](https://dolosse.org) - A Kafka based Data Acquisition System
 [![master](https://travis-ci.org/dolosse/dolosse.svg?branch=master)](https://travis-ci.org/dolosse/dolosse)
-[![test](https://travis-ci.org/dolosse/dolosse.svg?branch=test)](https://travis-ci.org/dolosse/dolosse)
-[![dev](https://travis-ci.org/dolosse/dolosse.svg?branch=dev)](https://travis-ci.org/dolosse/dolosse)
 
 Copyright (c) 2018 - 2019, [S. V. Paulauskas](https://projectscience.tech) and the 
 [Dolosse Collaboration](https://dolosse.org).
