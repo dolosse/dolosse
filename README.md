@@ -1,5 +1,8 @@
-# [Dolosse](https://github.com/dolosse/dolosse) - A Kafka based Data Acquisition System
-Copyright (c) 2018 - 2019, [S. V. Paulauskas](https://projectscience.tech) and the Dolosse Collaboration.
+# [Dolosse](https://dolosse.org) - A Kafka based Data Acquisition System
+[![master](https://travis-ci.org/dolosse/dolosse.svg?branch=master)](https://travis-ci.org/dolosse/dolosse)
+
+Copyright (c) 2018 - 2019, [S. V. Paulauskas](https://projectscience.tech), 
+[Dolosse Collaboration](https://dolosse.org).
 
 Dolosse is a modern scientific data acquisition and analysis framework. We use Kafka as a messaging backend that allows 
 synchronization between acquisition systems. Using Kafka's messaging interface we can create a feedback loops between 
@@ -22,7 +25,7 @@ analysis and acquisition systems. We're still working on developing the framewor
 
 # Documentation
 Our documentation is sparse right now since we're still getting off the ground. You can read about 
-the project motivation in [this presentation](https://docs.google.com/presentation/d/111I5qzSBoEeqXWFkZ2Doz_PpvOkBn-HIbGrVmhtsExg/edit?usp=sharing).
+the project motivation in [this presentation](https://dolosse.org/modernizing-nuclear-physics-data-processing/).
 You can also checkout the [wiki](https://github.com/dolosse/dolosse/wiki). 
 
 ## Support
@@ -56,5 +59,5 @@ pip install dolosse
 Now you'll have access to the packages and modules we use to build our components. 
 
 # Licensing
-We license the software under the Apache License 2.0. 
+[Apache License 2.0.](https://www.apache.org/licenses/LICENSE-2.0.html) 
 
