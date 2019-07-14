@@ -4,23 +4,18 @@ brief: Reads binary data from files or other sources
 author: S. V. Paulauskas
 date: January 22, 2019
 """
-import io
+from io import BytesIO
 import os
-import keyring
-import psycopg2
-import struct
+from struct import unpack
 import time
-import uuid
 import yaml
 
-from psycopg2 import pool
-
-import constants.data as data
-from hardware.xia.pixie16.list_mode_data_mask import ListModeDataMask
-from hardware.xia.pixie16.list_mode_data_decoder import ListModeDataDecoder
-from data_formats.pld import header
-from data_formats.ldf import header as ldf_header
-from data_formats.ldf import constants as ldf_constants
+import dolosse.constants.data as data
+from dolosse.hardware.xia.pixie16.list_mode_data_mask import ListModeDataMask
+from dolosse.hardware.xia.pixie16.list_mode_data_decoder import decode_listmode_data
+from dolosse.data_formats.pld import header
+from dolosse.data_formats.ldf import header as ldf_header
+from dolosse.data_formats.ldf import constants as ldf_constants
 
 if __name__ == "__main__":
     FILES = [
@@ -28,21 +23,14 @@ if __name__ == "__main__":
         # 'D:/data/svp/kafka-tests/bagel-single-spill-1.pld',
         #    'D:/data/utk/pixieworkshop/pulser_003.ldf',
         # 'D:/data/ithemba/bagel/runs/runBaGeL_337.pld',
-            'D:/data/anl/vandle2015/a135feb_12.ldf',
-        #'D:/data/utk/pixieworkshop/pulser_003.ldf'
+        # 'D:/data/anl/vandle2015/a135feb_12.ldf',
+        # 'D:/data/utk/pixieworkshop/pulser_003.ldf',
+        'C:/Users/stanp/Documents/projects/dolosse/data/timing_001.pld'
     ]
 
     with open('config.yaml') as f:
         cfg = yaml.safe_load(f)
 
-    db_connection_pool = \
-        psycopg2.pool.ThreadedConnectionPool(1, 200, user=cfg['database']['username'],
-                                             password=keyring.get_password(cfg['database']['host'],
-                                                                           cfg['database'][
-                                                                               'username']),
-                                             host=cfg['database']['host'],
-                                             port=cfg['database']['port'],
-                                             database=cfg['database']['name'])
     for file in FILES:
         print("Working on file: ", file)
         filename, file_extension = os.path.splitext(file)
@@ -61,45 +49,30 @@ if __name__ == "__main__":
                         num_data_blocks += 1
 
                         # First word in a PLD data buffer is the total size of the buffer
-                        total_data_buffer_size = (struct.unpack('I', f.read(data.WORD))[0]) * \
+                        total_data_buffer_size = (unpack('I', f.read(data.WORD))[0]) * \
                                                  data.WORD
 
-                        threads = []
                         # Reads the entire data buffer in one shot.
-                        with io.BytesIO(f.read(total_data_buffer_size)) as buffer:
+                        with BytesIO(f.read(total_data_buffer_size)) as buffer:
                             while True:
                                 first_word = buffer.read(data.WORD)
                                 if first_word == b'':
                                     break
 
                                 if file_extension == '.pld':
-                                    module_words = (struct.unpack('I', first_word)[
-                                                        0] - 2) * data.WORD
-                                    module_number = struct.unpack('I', buffer.read(data.WORD))[0]
+                                    module_words = (unpack('I', first_word)[0] - 2) * data.WORD
+                                    module_number = unpack('I', buffer.read(data.WORD))[0]
 
-                                    io.BytesIO(buffer.read(module_words))
-                                    thread_uuid = uuid.uuid4()
-                                    t = ListModeDataDecoder(io.BytesIO(buffer.read(module_words)),
-                                                           data_mask,
-                                                           db_connection_pool.getconn(),
-                                                           'test')
-                                    t.setDaemon(True)
-                                    t.start()
-                                    threads.append(t)
+                                    BytesIO(buffer.read(module_words))
 
-                                    while threads:
-                                        for thread in threads:
-                                            if not thread.isAlive():
-                                                db_connection_pool.putconn(conn=thread.db_connection)
-                                        threads = [t for t in threads if t.isAlive()]
+                                    print(decode_listmode_data(BytesIO(buffer.read(module_words)),
+                                                               data_mask))
                                 if file_extension == '.ldf':
-                                    number_of_words = (
-                                                      struct.unpack('I', first_word)[0]) * data.WORD
-
+                                    number_of_words = (unpack('I', first_word)[0]) * data.WORD
                     elif chunk == data.DIR_BLOCK:
                         num_dir_blocks += 1
                         if file_extension == '.ldf':
-                            io.BytesIO(f.read(
+                            BytesIO(f.read(
                                 ldf_constants.LDF_DATA_BUFFER_SIZE * data.WORD))
                     elif chunk == data.END_OF_FILE:
                         num_end_of_file += 1
@@ -114,10 +87,10 @@ if __name__ == "__main__":
                             print(header.PldHeader().read_header(f))
                         if file_extension == '.ldf':
                             print(ldf_header.LdfHeader().
-                                read_header(io.BytesIO(f.read(
+                                read_header(BytesIO(f.read(
                                 ldf_constants.LDF_DATA_BUFFER_SIZE_WITHOUT_HEADER * data.WORD))))
                     else:
-                        print(struct.unpack('I', chunk)[0])
+                        print(unpack('I', chunk)[0])
                         num_unknown += 1
                 else:
                     break

@@ -6,7 +6,6 @@ date: January 17, 2019
 """
 from functools import partial
 import struct
-import threading
 
 import dolosse.constants.data as data
 
@@ -84,35 +83,18 @@ def decode_trace():
     print("decoding trace")
 
 
-class ListModeDataDecoder(threading.Thread):
-    """
-    Class that loops through a data stream to locate and process Pixie16
-    list mode data.
-    """
-
-    def __init__(self, stream, mask):
-        """
-        Constructor
-        :param stream: The stream that we'll read data from
-        :param mask: the data mask that we'll use to decode data
-        """
-        threading.Thread.__init__(self)
-        self.stream = stream
-        self.mask = mask
-        self.finished = False
-
-    def run(self):
-        """ Decodes data from Pixie16 binary data stream """
-        # TODO : Will need to add in decoding of optional header information
-        decoded_data_list = []
-        for chunk in iter(partial(self.stream.read, data.WORD), b''):
-            decoded_data = decode_word_zero(struct.unpack('I', chunk)[0], self.mask)
-            decoded_data.update({
-                'event_time_low': struct.unpack('I', self.stream.read(data.WORD))[0],
-            })
-            decoded_data.update(
-                decode_word_two(struct.unpack('I', self.stream.read(data.WORD))[0], self.mask))
-            decoded_data.update(
-                decode_word_three(struct.unpack('I', self.stream.read(data.WORD))[0], self.mask))
-            decoded_data_list.append(decoded_data)
-        return decoded_data_list
+def decode_listmode_data(stream, mask):
+    """ Decodes data from Pixie16 binary data stream """
+    # TODO : Will need to add in decoding of optional header information
+    decoded_data_list = []
+    for chunk in iter(partial(stream.read, data.WORD), b''):
+        decoded_data = decode_word_zero(struct.unpack('I', chunk)[0], mask)
+        decoded_data.update({
+            'event_time_low': struct.unpack('I', stream.read(data.WORD))[0],
+        })
+        decoded_data.update(
+            decode_word_two(struct.unpack('I', stream.read(data.WORD))[0], mask))
+        decoded_data.update(
+            decode_word_three(struct.unpack('I', stream.read(data.WORD))[0], mask))
+        decoded_data_list.append(decoded_data)
+    return decoded_data_list

@@ -6,7 +6,7 @@ date: February 04, 2019
 """
 import struct
 
-import constants.data as data
+import dolosse.constants.data as data
 
 class LdfHeader:
     """
