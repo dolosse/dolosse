@@ -12,8 +12,15 @@ import dolosse.constants.data as data
 
 def decode_word_zero(word, mask):
     """
-
+    Decodes the
+       * Channel
+       * Slot
+       * Crate
+       * Header Length (Base 4 words + options)
+       * Event Length (Header + Trace Length / 2)
+       * Finish Code
     :param word: The word that we're going to decode
+    :param mask: The mask that we'll be using.
     :return: A dictionary containing the decoded information.
     """
     return {
