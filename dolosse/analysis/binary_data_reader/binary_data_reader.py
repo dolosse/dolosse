@@ -10,26 +10,50 @@ from struct import unpack
 import time
 import yaml
 
+import pandas as pd
+
 import dolosse.constants.data as data
 from dolosse.hardware.xia.pixie16.list_mode_data_mask import ListModeDataMask
 from dolosse.hardware.xia.pixie16.list_mode_data_decoder import decode_listmode_data
 from dolosse.data_formats.pld import header
 from dolosse.data_formats.ldf import header as ldf_header
 from dolosse.data_formats.ldf import constants as ldf_constants
+from dolosse.common.thread_pool import ThreadPool
+
+
+def process_data_buffer(file_extension, buffer):
+    while True:
+        first_word = buffer.read(data.WORD)
+        if first_word == b'':
+            break
+
+        if file_extension == '.pld':
+            module_words = (unpack('I', first_word)[0] - 2) * data.WORD
+            module_number = unpack('I', buffer.read(data.WORD))[0]
+
+            pd.DataFrame(decode_listmode_data(BytesIO(buffer.read(module_words)), data_mask))\
+                .to_parquet(fname='data/test', partition_cols=['crate'])
+            #   .to_parquet(fname='data/test', partition_cols=['crate', 'slot', 'channel'])
+            if file_extension == '.ldf':
+                number_of_words = (unpack('I', first_word)[0]) * data.WORD
+                print(number_of_words)
+
 
 if __name__ == "__main__":
     FILES = [
         # 'D:/data/svp/kafka-tests/kafka-data-test-0.pld',
         # 'D:/data/svp/kafka-tests/bagel-single-spill-1.pld',
-        #    'D:/data/utk/pixieworkshop/pulser_003.ldf',
-        # 'D:/data/ithemba/bagel/runs/runBaGeL_337.pld',
+        # 'D:/data/utk/pixieworkshop/pulser_003.ldf',
+        'D:/data/ithemba/bagel/runs/runBaGeL_337.pld',
         # 'D:/data/anl/vandle2015/a135feb_12.ldf',
         # 'D:/data/utk/pixieworkshop/pulser_003.ldf',
-        'C:/Users/stanp/Documents/projects/dolosse/data/timing_001.pld'
+        # 'C:/Users/stanp/Documents/projects/dolosse/data/timing_001.pld'
     ]
 
     with open('config.yaml') as f:
         cfg = yaml.safe_load(f)
+
+    pool = ThreadPool(25)
 
     for file in FILES:
         print("Working on file: ", file)
@@ -47,28 +71,10 @@ if __name__ == "__main__":
                 if chunk:
                     if chunk == data.DATA_BLOCK:
                         num_data_blocks += 1
-
                         # First word in a PLD data buffer is the total size of the buffer
-                        total_data_buffer_size = (unpack('I', f.read(data.WORD))[0]) * \
-                                                 data.WORD
-
-                        # Reads the entire data buffer in one shot.
-                        with BytesIO(f.read(total_data_buffer_size)) as buffer:
-                            while True:
-                                first_word = buffer.read(data.WORD)
-                                if first_word == b'':
-                                    break
-
-                                if file_extension == '.pld':
-                                    module_words = (unpack('I', first_word)[0] - 2) * data.WORD
-                                    module_number = unpack('I', buffer.read(data.WORD))[0]
-
-                                    BytesIO(buffer.read(module_words))
-
-                                    print(decode_listmode_data(BytesIO(buffer.read(module_words)),
-                                                               data_mask))
-                                if file_extension == '.ldf':
-                                    number_of_words = (unpack('I', first_word)[0]) * data.WORD
+                        total_data_buffer_size = (unpack('I', f.read(data.WORD))[0]) * data.WORD
+                        pool.add_task(process_data_buffer, file_extension,
+                                      BytesIO(f.read(total_data_buffer_size)))
                     elif chunk == data.DIR_BLOCK:
                         num_dir_blocks += 1
                         if file_extension == '.ldf':
@@ -94,6 +100,7 @@ if __name__ == "__main__":
                         num_unknown += 1
                 else:
                     break
+            pool.wait_completion()
             print("Basic statistics for the file:",
                   "\n\tNumber of Dirs         : ", num_dir_blocks,
                   "\n\tNumber of Head         : ", num_head_blocks,
