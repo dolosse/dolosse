@@ -9,6 +9,7 @@ import os
 from struct import unpack
 import time
 import yaml
+from sys import getsizeof
 
 import pandas as pd
 
@@ -31,12 +32,16 @@ def process_data_buffer(file_extension, buffer):
             module_words = (unpack('I', first_word)[0] - 2) * data.WORD
             module_number = unpack('I', buffer.read(data.WORD))[0]
 
-            pd.DataFrame(decode_listmode_data(BytesIO(buffer.read(module_words)), data_mask))\
+            pd.DataFrame(decode_listmode_data(BytesIO(buffer.read(module_words)), data_mask)) \
                 .to_parquet(fname='data/test', partition_cols=['crate'])
             #   .to_parquet(fname='data/test', partition_cols=['crate', 'slot', 'channel'])
-            if file_extension == '.ldf':
-                number_of_words = (unpack('I', first_word)[0]) * data.WORD
-                print(number_of_words)
+        if file_extension == '.ldf':
+            # print("Size of Buffer:", getsizeof(buffer))
+            print((unpack('I', first_word)[0]),  # Bytes in the chunk
+                  (unpack('I', buffer.read(data.WORD))[0]),  # number of chunks
+                  (unpack('I', buffer.read(data.WORD))[0]))  # chunk number
+            # BytesIO(buffer.read(bytes_in_chunk))
+            break
 
 
 if __name__ == "__main__":
@@ -44,10 +49,17 @@ if __name__ == "__main__":
         # 'D:/data/svp/kafka-tests/kafka-data-test-0.pld',
         # 'D:/data/svp/kafka-tests/bagel-single-spill-1.pld',
         # 'D:/data/utk/pixieworkshop/pulser_003.ldf',
-        'D:/data/ithemba/bagel/runs/runBaGeL_337.pld',
+        # 'D:/data/ithemba/bagel/runs/runBaGeL_337.pld',
         # 'D:/data/anl/vandle2015/a135feb_12.ldf',
         # 'D:/data/utk/pixieworkshop/pulser_003.ldf',
-        # 'C:/Users/stanp/Documents/projects/dolosse/data/timing_001.pld'
+        # 'C:/Users/stanp/Documents/cu73_04-1.ldf',
+        # 'X:/data/isolde/is599_600/IS599Oct_A052_02.ldf',
+        # 'X:/data/anl/vandle2015/a135feb_12.ldf',
+        # 'X:/data/utk/vandleBeta-12-4-14/CF_all.ldf',
+        # 'X:/data/utk/pixieworkshop/pulser_003.ldf',
+        # 'X:/data/utk/funix-collab/137cs_veto_redux_001_low.ldf'
+        # 'X:/data/utk/plsr/20120606-firmware/plsr-0020mV-00ns.ldf'
+        'X:/data/ornl/vandle2016/097rb_02-2.ldf'
     ]
 
     with open('config.yaml') as f:
@@ -71,10 +83,12 @@ if __name__ == "__main__":
                 if chunk:
                     if chunk == data.DATA_BLOCK:
                         num_data_blocks += 1
-                        # First word in a PLD data buffer is the total size of the buffer
-                        total_data_buffer_size = (unpack('I', f.read(data.WORD))[0]) * data.WORD
-                        pool.add_task(process_data_buffer, file_extension,
-                                      BytesIO(f.read(total_data_buffer_size)))
+                        # First word in a data buffer is the total size of the buffer
+                        total_data_buffer_size = (unpack('I', f.read(data.WORD))[0] - 1) * data.WORD
+                        #print(total_data_buffer_size)
+                        process_data_buffer(file_extension, BytesIO(f.read(total_data_buffer_size)))
+                        # pool.add_task(process_data_buffer, file_extension,
+                        #               BytesIO(f.read(total_data_buffer_size)))
                     elif chunk == data.DIR_BLOCK:
                         num_dir_blocks += 1
                         if file_extension == '.ldf':
@@ -96,7 +110,7 @@ if __name__ == "__main__":
                                 read_header(BytesIO(f.read(
                                 ldf_constants.LDF_DATA_BUFFER_SIZE_WITHOUT_HEADER * data.WORD))))
                     else:
-                        print(unpack('I', chunk)[0])
+                        # print(unpack('I', chunk)[0])
                         num_unknown += 1
                 else:
                     break
