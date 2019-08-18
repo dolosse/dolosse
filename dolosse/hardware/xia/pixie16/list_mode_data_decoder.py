@@ -5,9 +5,9 @@ author: S. V. Paulauskas
 date: January 17, 2019
 """
 from functools import partial
-import struct
+from struct import unpack
 
-import dolosse.constants.data as data
+from dolosse.constants.data import WORD
 
 
 def decode_word_zero(word, mask):
@@ -37,11 +37,7 @@ def decode_word_zero(word, mask):
 
 def decode_word_two(word, mask):
     """
-    Decodes the
-       * high component of the event time
-       * CFD time
-       * CFD Trigger source bit
-       * CFD forced trigger bit
+    Decodes the second word in the standard 4 word header.
     :param word: The word that we're going to decode.
     :param mask: The mask we'll use to decode that word.
     :return: A dictionary containing the decoded information
@@ -59,10 +55,7 @@ def decode_word_two(word, mask):
 
 def decode_word_three(word, mask):
     """
-    The final word of the standard header. Contains
-        * trapezoidal energy
-        * trace length
-        * trace out of range flag
+    The final word of the standard header.
     :param word: The word that we're going to decode.
     :param mask: The mask we'll use to decode that word.
     :return: A dictionary containing the decoded information
@@ -74,34 +67,41 @@ def decode_word_three(word, mask):
     }
 
 
-def decode_external_timestamps():
-    print("decoding timestamps")
-
-
-def decode_qdc():
-    print("decoding qdc")
-
-
-def decode_energy_sums():
-    print("decoding energysums")
-
-
-def decode_trace():
-    print("decoding trace")
+def decode_energy_sums(buf):
+    """
+    The first three words are the leading edge, flattop, and falling edge of the trapezoidal filter.
+    The last word is the baseline encoded in IEEE 754 format. We need to decode this set of data
+    in a different way than the other header words.
+    https://en.wikipedia.org/wiki/IEEE_754#IEEE_754-2008
+    https://stackoverflow.com/questions/39593087/double-conversion-to-decimal-value-ieee-754-in-python
+    :param buf: The buffer containing the encoded information
+    :return: An array with the elements we decoded.
+    """
+    return [unpack('I', buf.read(WORD))[0],
+            unpack('I', buf.read(WORD))[0],
+            unpack('I', buf.read(WORD))[0],
+            unpack(b'<f', buf.read(WORD))[0]]
 
 
 def decode_listmode_data(stream, mask):
-    """ Decodes data from Pixie16 binary data stream """
+    """
+    Decodes data from Pixie16 binary data stream. We'll have an unknown number of events in the
+    data buffer. Therefore, we'll need to loop over the buffer and decode the events as we go. We
+    store the decoded events as a dictionary, and put those dictionaries into an array.
+    :param stream: The data stream that we'll be decoding
+    :param mask: The binary data mask that we'll need to decode the data.
+    """
+    # TODO : Update the loop here to use decode buffer for the first 4 words of the header.
     # TODO : Will need to add in decoding of optional header information
     decoded_data_list = []
-    for chunk in iter(partial(stream.read, data.WORD), b''):
-        decoded_data = decode_word_zero(struct.unpack('I', chunk)[0], mask)
+    for chunk in iter(partial(stream.read, WORD), b''):
+        decoded_data = decode_word_zero(unpack('I', chunk)[0], mask)
         decoded_data.update({
-            'event_time_low': struct.unpack('I', stream.read(data.WORD))[0],
+            'event_time_low': unpack('I', stream.read(WORD))[0],
         })
         decoded_data.update(
-            decode_word_two(struct.unpack('I', stream.read(data.WORD))[0], mask))
+            decode_word_two(unpack('I', stream.read(WORD))[0], mask))
         decoded_data.update(
-            decode_word_three(struct.unpack('I', stream.read(data.WORD))[0], mask))
+            decode_word_three(unpack('I', stream.read(WORD))[0], mask))
         decoded_data_list.append(decoded_data)
     return decoded_data_list
