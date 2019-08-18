@@ -41,11 +41,11 @@ class ListModeDataDecoderTestCase(unittest.TestCase):
             'trace_out_of_range': 0
         }, decoder.decode_word_three(2345, self.mask))
 
-    def test_run(self):
+    def test_decode_listmode_data(self):
         self.assertEqual(
-            decoder.ListModeDataDecoder(
+            decoder.decode_listmode_data(
                 BytesIO(b'\x2D\x40\x08\x00\x15\xCD\x5B\x07\x91\x65\x00\x00\x29\x09\x00\x00'),
-                self.mask).run(),
+                self.mask),
             [{
                 'channel': 13,
                 'slot': 2,

@@ -1,46 +1,18 @@
-database:
-  host: localhost
-  port: 5432
-  username: postgres
-  name: bagel
+hardware:
+  pixie:
+    firmware: 30474
+    frequency: 250
 
-logging:
-  version: 1
-  disable_existing_loggers: False
+input:
+  file_list:
+#    - D:/data/svp/kafka-tests/kafka-data-test-0.pld
+#    - D:/data/svp/kafka-tests/bagel-single-spill-1.pld
+    - D:/data/ithemba/bagel/runs/runBaGeL_337.pld
+#    - D:/data/utk/pixieworkshop/pulser_003.ldf
+#    - D:/data/anl/vandle2015/a135feb_12.ldf
+#    - D:/data/ornl/073cu/cu73_04-1.ldf
+#    - D:/data/ornl/073cu/cu73_04-1.ldf
 
-  formatters:
-    simple:
-      format: >-
-        {
-          'time': %(asctime)s,
-          'module_name': %(module)s,
-          'level': %(levelname)s,
-          'pid': %(process)s,
-          'thread': %(threadName)s,
-          'loggerName': %(name)s,
-          'message': %(message)s
-        }
 
-  handlers:
-    default:
-      class: logging.handlers.TimedRotatingFileHandler
-      level: DEBUG
-      formatter: simple
-      filename: consumer.log
-      interval: 1
-      when: h
-
-    console:
-      class: logging.StreamHandler
-      level: DEBUG
-      formatter: simple
-      stream: ext://sys.stdout
-
-  loggers:
-    ConsumerWorker:
-      level: INFO
-      handlers: [default, console]
-
-  root:
-    level: INFO
-    handlers: [default]
+output:
+  root: data # The root directory that we'll use to store the output files and meta information
