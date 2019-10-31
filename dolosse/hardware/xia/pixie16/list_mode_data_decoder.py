@@ -4,10 +4,27 @@ brief: Decodes binary data produced by an XIA Pixie16 module
 author: S. V. Paulauskas
 date: January 17, 2019
 """
+from enum import Enum
 from functools import partial
 from struct import unpack
 
 from dolosse.constants.data import WORD
+
+
+class HeaderCodes(Enum):
+    """
+    Defines the various header values that we expect. If we get something that's not one of these
+    then we have a huge problem.
+    """
+    STATS_BLOCK = 1
+    HEADER = 4
+    HEADER_W_ETS = 6
+    HEADER_W_ESUM = 8
+    HEADER_W_ESUM_ETS = 10
+    HEADER_W_QDC = 12
+    HEADER_W_QDC_ETS = 14
+    HEADER_W_ESUM_QDC = 16
+    HEADER_W_ESUM_QDC_ETS = 18
 
 
 def decode_word_zero(word, mask):
@@ -27,10 +44,8 @@ def decode_word_zero(word, mask):
         'channel': (word & mask.channel()[0]) >> mask.channel()[1],
         'slot': (word & mask.slot()[0]) >> mask.slot()[1],
         'crate': (word & mask.crate()[0]) >> mask.crate()[1],
-        'header_length': (word & mask.header_length()[0]) >>
-                         mask.header_length()[1],
-        'event_length': (word & mask.event_length()[0]) >>
-                        mask.event_length()[1],
+        'header_length': (word & mask.header_length()[0]) >> mask.header_length()[1],
+        'event_length': (word & mask.event_length()[0]) >> mask.event_length()[1],
         'finish_code': (word & mask.finish_code()[0]) >> mask.finish_code()[1]
     }
 
@@ -83,6 +98,42 @@ def decode_energy_sums(buf):
             unpack(b'<f', buf.read(WORD))[0]]
 
 
+def process_header_code(header_length, mask):
+    header_info = {}
+    if header_length in [HeaderCodes.HEADER_W_ETS, HeaderCodes.HEADER_W_ESUM_ETS,
+                         HeaderCodes.HEADER_W_ESUM_QDC_ETS, HeaderCodes.HEADER_W_QDC_ETS]:
+        header_info.update({'external_timestamp': True})
+
+    if HeaderCodes.HEADER_W_QDC:
+        has_qdc = True
+        qdc_offset = header_length - mask.GetNumberOfQdcWords()
+    if HeaderCodes.HEADER_W_ESUM:
+        has_energy_sums = True
+        energy_sums_offset = header_length - mask.GetNumberOfEnergySumWords()
+    if HeaderCodes.HEADER_W_ESUM_ETS:
+        has_external_timestamp = has_energy_sums = True
+        energy_sums_offset = header_length - mask.GetNumberOfEnergySumWords() \
+                             - mask.GetNumberOfExternalTimestampWords()
+    if HeaderCodes.HEADER_W_ESUM_QDC:
+        has_energy_sums = has_qdc = True
+        energy_sums_offset = header_length - mask.GetNumberOfEnergySumWords() \
+                             - mask.GetNumberOfQdcWords()
+        qdc_offset = header_length - mask.GetNumberOfQdcWords()
+    if HeaderCodes.HEADER_W_ESUM_QDC_ETS:
+        has_energy_sums = has_external_timestamp = has_qdc = True
+        energy_sums_offset = header_length \
+                             - mask.GetNumberOfExternalTimestampWords() \
+                             - mask.GetNumberOfQdcWords() - mask.GetNumberOfEnergySumWords()
+    qdc_offset = header_length - mask.GetNumberOfExternalTimestampWords() \
+                 - mask.GetNumberOfQdcWords()
+    if HeaderCodes.HEADER_W_QDC_ETS:
+        has_qdc = has_external_timestamp = True
+        qdc_offset = header_length - mask.GetNumberOfExternalTimestampWords() \
+                     - mask.GetNumberOfQdcWords()
+
+    return header_info
+
+
 def decode_listmode_data(stream, mask):
     """
     Decodes data from Pixie16 binary data stream. We'll have an unknown number of events in the
@@ -95,6 +146,9 @@ def decode_listmode_data(stream, mask):
     # TODO : Will need to add in decoding of optional header information
     decoded_data_list = []
     for chunk in iter(partial(stream.read, WORD), b''):
+        has_external_timestamp = has_qdc = has_energy_sums = False
+        qdc_offset = energy_sums_offset = 0
+
         decoded_data = decode_word_zero(unpack('I', chunk)[0], mask)
         decoded_data.update({
             'event_time_low': unpack('I', stream.read(WORD))[0],
@@ -103,5 +157,11 @@ def decode_listmode_data(stream, mask):
             decode_word_two(unpack('I', stream.read(WORD))[0], mask))
         decoded_data.update(
             decode_word_three(unpack('I', stream.read(WORD))[0], mask))
+
+        if decoded_data['header_length'] not in HeaderCodes:
+            raise BufferError('Unexpected Header Length: %s\n\tCRATE:SLOT:CHAN = %s:%s:%s'
+                              % (decoded_data['header_length'], decoded_data['crate'],
+                                 decoded_data['slot'], decoded_data['channel']))
+
         decoded_data_list.append(decoded_data)
     return decoded_data_list
