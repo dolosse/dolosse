@@ -55,16 +55,60 @@ class Pixie16TestData:
         return data
 
     @staticmethod
-    def esums(as_bytes=False):
+    def esums(as_bytes=False, decoded=False):
         data = [12, 13, 14, 1164725159]
         if as_bytes:
             return pack_data(data, "I")
+        if decoded:
+            data[3] = 3780.728271484375
         return data
 
     @staticmethod
-    def header(freq=250, firmware=30474, as_bytes=False):
+    def header(freq=250, firmware=30474, as_bytes=False, decoded=False):
         if freq == 250 and firmware == 30474:
             data = [540717, 123456789, 26001, 2345]
+            if decoded:
+                data = {
+                    'channel': 13,
+                    'slot': 2,
+                    'crate': 0,
+                    'header_length': 4,
+                    'event_length': 4,
+                    'finish_code': 0,
+                    'event_time_low': 123456789,
+                    'event_time_high': 26001,
+                    'cfd_fractional_time': 0,
+                    'cfd_trigger_source_bit': 0,
+                    'cfd_forced_trigger_bit': 0,
+                    'energy': 2345,
+                    'trace_length': 0,
+                    'trace_out_of_range': 0
+                }
+        if as_bytes:
+            return pack_data(data, 'I')
+        return data
+
+    @staticmethod
+    def header_with_trace(freq=250, firmware=30474, as_bytes=False, decoded=False):
+        if freq == 250 and firmware == 30474:
+            data = [8667181, 123456789, 26001, 8128809]
+            if decoded:
+                data = {
+                    'channel': 13,
+                    'slot': 2,
+                    'crate': 0,
+                    'header_length': 4,
+                    'event_length': 66,
+                    'finish_code': 0,
+                    'event_time_low': 123456789,
+                    'event_time_high': 26001,
+                    'cfd_fractional_time': 0,
+                    'cfd_trigger_source_bit': 0,
+                    'cfd_forced_trigger_bit': 0,
+                    'energy': 2345,
+                    'trace_length': 124,
+                    'trace_out_of_range': 0
+                }
         if as_bytes:
             return pack_data(data, 'I')
         return data

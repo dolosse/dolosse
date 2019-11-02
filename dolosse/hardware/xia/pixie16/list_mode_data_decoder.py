@@ -6,15 +6,16 @@ date: January 17, 2019
 """
 from enum import Enum
 from functools import partial
+from io import BytesIO
 from struct import unpack
 
-from dolosse.constants.data import WORD
+from dolosse.constants.data import WORD, HALF_WORD
 
 
 class HeaderCodes(Enum):
     """
     Defines the various header values that we expect. If we get something that's not one of these
-    then we have a huge problem.
+    then we have a problem.
     """
     STATS_BLOCK = 1
     HEADER = 4
@@ -123,6 +124,7 @@ def decode_qdc(buf):
         qdc.append(unpack('I', chunk)[0])
     return qdc
 
+
 def decode_trace(buf):
     """
     Pixie-16 stores traces with two samples per word. This is about the only place we need to use
@@ -130,42 +132,32 @@ def decode_trace(buf):
     :param buf: The buffer containing the trace.
     :return:
     """
+    trc = []
+    for chunk in iter(partial(buf.read, HALF_WORD), b''):
+        trc.append(unpack('H', chunk)[0])
+    return trc
 
 
-def process_header_code(header_length, mask):
-    header_info = {}
-    if header_length in [HeaderCodes.HEADER_W_ETS, HeaderCodes.HEADER_W_ESUM_ETS,
-                         HeaderCodes.HEADER_W_ESUM_QDC_ETS, HeaderCodes.HEADER_W_QDC_ETS]:
-        header_info.update({'external_timestamp': True})
-
-    if HeaderCodes.HEADER_W_QDC:
-        has_qdc = True
-        qdc_offset = header_length - mask.number_of_qdc_words()
-    if HeaderCodes.HEADER_W_ESUM:
-        has_energy_sums = True
-        energy_sums_offset = header_length - mask.number_of_energy_sum_words()
-    if HeaderCodes.HEADER_W_ESUM_ETS:
-        has_external_timestamp = has_energy_sums = True
-        energy_sums_offset = header_length - mask.number_of_energy_sum_words() \
-                             - mask.number_of_external_timestamp_words()
-    if HeaderCodes.HEADER_W_ESUM_QDC:
-        has_energy_sums = has_qdc = True
-        energy_sums_offset = header_length - mask.number_of_energy_sum_words() \
-                             - mask.number_of_qdc_words()
-        qdc_offset = header_length - mask.number_of_qdc_words()
-    if HeaderCodes.HEADER_W_ESUM_QDC_ETS:
-        has_energy_sums = has_external_timestamp = has_qdc = True
-        energy_sums_offset = header_length \
-                             - mask.number_of_external_timestamp_words() \
-                             - mask.number_of_qdc_words() - mask.number_of_energy_sum_words()
-        qdc_offset = header_length - mask.number_of_external_timestamp_words() \
-                     - mask.number_of_qdc_words()
-    if HeaderCodes.HEADER_W_QDC_ETS:
-        has_qdc = has_external_timestamp = True
-        qdc_offset = header_length - mask.number_of_external_timestamp_words() \
-                     - mask.number_of_qdc_words()
-
-    return header_info
+def process_optional_header_data(buf, header_length, mask):
+    """
+    Process additional header data if they exist. We need to execute the buffer reads in order due
+    to how the data structure works. The order is always ESUMS -> QDC -> EXTERNAL_TIMESTAMP (ETS).
+    If one of the three is missing everything else shifts up.
+    :param buf: The buffer that we'll be reading from
+    :param header_length: The header length so that we know what the buffer contains.
+    :param mask: The mask that we need to know how many words each component has.
+    :return: A dictionary containing the decoded data.
+    """
+    data = {}
+    if HeaderCodes(header_length) in [code for code in HeaderCodes if "ESUM" in code.name]:
+        data['esums'] = \
+            decode_energy_sums(BytesIO(buf.read(WORD * mask.number_of_energy_sum_words())))
+    if HeaderCodes(header_length) in [code for code in HeaderCodes if "QDC" in code.name]:
+        data['qdc'] = decode_qdc(BytesIO(buf.read(WORD * mask.number_of_qdc_words())))
+    if HeaderCodes(header_length) in [code for code in HeaderCodes if "ETS" in code.name]:
+        data['external_timestamp'] = decode_external_timestamp(
+            BytesIO(buf.read(WORD * mask.number_of_external_timestamp_words())), mask)
+    return data
 
 
 def decode_listmode_data(stream, mask):
@@ -176,28 +168,34 @@ def decode_listmode_data(stream, mask):
     :param stream: The data stream that we'll be decoding
     :param mask: The binary data mask that we'll need to decode the data.
     """
-    # TODO : Update the loop here to use decode buffer for the first 4 words of the header.
-    # TODO : Will need to add in decoding of optional header information
     decoded_data_list = []
     for chunk in iter(partial(stream.read, WORD), b''):
-        has_external_timestamp = has_qdc = has_energy_sums = False
-        qdc_offset = energy_sums_offset = 0
-
         decoded_data = decode_word_zero(unpack('I', chunk)[0], mask)
         decoded_data.update({
-            'event_time_low': unpack('I', stream.read(WORD))[0],
-        })
+            'event_time_low': unpack('I', stream.read(WORD))[0]})
         decoded_data.update(
             decode_word_two(unpack('I', stream.read(WORD))[0], mask))
         decoded_data.update(
             decode_word_three(unpack('I', stream.read(WORD))[0], mask))
 
-        if decoded_data['header_length'] not in HeaderCodes._value2member_map_:
+        try:
+            decoded_data.update(
+                process_optional_header_data(stream, decoded_data['header_length'], mask))
+        except ValueError:
             raise BufferError('Unexpected Header Length: %s\n\tCRATE:SLOT:CHAN = %s:%s:%s'
                               % (decoded_data['header_length'], decoded_data['crate'],
                                  decoded_data['slot'], decoded_data['channel']))
 
-        header_info = process_header_code(decoded_data['header_length'], mask)
+        if decoded_data['trace_length'] != 0:
+            if decoded_data['event_length'] - decoded_data['header_length'] \
+                    == decoded_data['trace_length'] * 0.5:
+                decoded_data.update({'trace': decode_trace(BytesIO(stream.read(
+                    WORD * int(decoded_data['trace_length'] * 0.5))))})
+            else:
+                raise ValueError(
+                    'Event Length (%s) does not match with Header(%s) + Trace (%s) Length !' % (
+                        decoded_data['event_length'], decoded_data['header_length'],
+                        decoded_data['trace_length']))
 
         decoded_data_list.append(decoded_data)
     return decoded_data_list

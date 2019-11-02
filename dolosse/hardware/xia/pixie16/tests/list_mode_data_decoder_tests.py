@@ -66,10 +66,8 @@ class ListModeDataDecoderTestCase(unittest.TestCase):
         Test that we can decode the energy sums. These can be tricky
         b/c the baseline is encoded in IEEE 754 format.
         """
-        result = decoder.decode_energy_sums(BytesIO(td.esums(True)))
-        self.assertEqual(td.esums()[:3], result[:3])
-        self.assertAlmostEqual(3780.72827148438, result[3])
-
+        self.assertEqual(td.esums(decoded=True),
+                         decoder.decode_energy_sums(BytesIO(td.esums(True))))
 
     def test_decode_external_timestamp(self):
         """
@@ -84,30 +82,56 @@ class ListModeDataDecoderTestCase(unittest.TestCase):
         """
         self.assertEqual(td.qdc(), decoder.decode_qdc(BytesIO(td.qdc(True))))
 
+    def test_decode_trace(self):
+        """
+        Tests that we can decode a trace from the data stream.
+        """
+        self.assertEqual(td.trace(), decoder.decode_trace(BytesIO(td.trace(True))))
+
+    def test_process_optional_header_data(self):
+        """
+        Test that we can process all the various header data correctly.
+        """
+        self.assertDictEqual({'external_timestamp': td.external_timestamp()},
+                             decoder.process_optional_header_data(
+                                 BytesIO(td.external_timestamp(True)),
+                                 decoder.HeaderCodes.HEADER_W_ETS, self.mask))
+        self.assertDictEqual({'esums': td.esums(False, True)},
+                             decoder.process_optional_header_data(BytesIO(td.esums(True)),
+                                                                  decoder.HeaderCodes.HEADER_W_ESUM,
+                                                                  self.mask))
+        self.assertDictEqual(
+            {'external_timestamp': td.external_timestamp(), 'esums': td.esums(False, True)},
+            decoder.process_optional_header_data(
+                BytesIO(td.esums(True) + td.external_timestamp(True)),
+                decoder.HeaderCodes.HEADER_W_ESUM_ETS, self.mask))
+        self.assertDictEqual({'qdc': td.qdc()},
+                             decoder.process_optional_header_data(BytesIO(td.qdc(True)),
+                                                                  decoder.HeaderCodes.HEADER_W_QDC,
+                                                                  self.mask))
+        self.assertDictEqual({'external_timestamp': td.external_timestamp(), 'qdc': td.qdc()},
+                             decoder.process_optional_header_data(
+                                 BytesIO(td.qdc(True) + td.external_timestamp(True)),
+                                 decoder.HeaderCodes.HEADER_W_QDC_ETS, self.mask))
+        self.assertDictEqual({'esums': td.esums(False, True), 'qdc': td.qdc()},
+                             decoder.process_optional_header_data(
+                                 BytesIO(td.esums(True) + td.qdc(True)),
+                                 decoder.HeaderCodes.HEADER_W_ESUM_QDC, self.mask))
+        self.assertDictEqual({'external_timestamp': td.external_timestamp(), 'qdc': td.qdc(),
+                              'esums': td.esums(False, True)}, decoder.process_optional_header_data(
+            BytesIO(td.esums(True) + td.qdc(True) + td.external_timestamp(True)),
+            decoder.HeaderCodes.HEADER_W_ESUM_QDC_ETS, self.mask))
+
     def test_decode_listmode_data(self):
         """
         Test that we can decode a full 4 word header properly.
         """
-        self.assertEqual(
-            decoder.decode_listmode_data(
-                BytesIO(td.header(self.frequency, self.firmware, True)),
-                self.mask),
-            [{
-                'channel': 13,
-                'slot': 2,
-                'crate': 0,
-                'header_length': 4,
-                'event_length': 4,
-                'finish_code': 0,
-                'event_time_low': 123456789,
-                'event_time_high': 26001,
-                'cfd_fractional_time': 0,
-                'cfd_trigger_source_bit': 0,
-                'cfd_forced_trigger_bit': 0,
-                'energy': 2345,
-                'trace_length': 0,
-                'trace_out_of_range': 0
-            }])
+        self.assertEqual([td.header(decoded=True)],
+                         decoder.decode_listmode_data(BytesIO(td.header(as_bytes=True)), self.mask))
+        self.assertEqual([{**td.header_with_trace(decoded=True), **{'trace': td.trace()}}],
+                         decoder.decode_listmode_data(
+                             BytesIO(td.header_with_trace(as_bytes=True) + td.trace(True)),
+                             self.mask))
 
 
 if __name__ == '__main__':
