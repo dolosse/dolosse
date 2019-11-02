@@ -7,6 +7,7 @@ date: January 27, 2019
 
 # There are 4 bytes in 1 32-bit word, this will be the basis for our reads.
 WORD = 4
+HALF_WORD = 2
 
 # Here we define some of the keywords that define different types of blocks in the binary data.
 DIR_BLOCK = b'DIR '

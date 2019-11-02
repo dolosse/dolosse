@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="dolosse",
-    version="0.0.0",
+    version="0.0.1",
     author="S. V. Paulauskas and the Dolosse Collaboration",
     author_email="stan@projectscience.tech",
     description="A Kafka based data acquisition and analysis framework",
