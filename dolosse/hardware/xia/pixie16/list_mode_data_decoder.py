@@ -98,6 +98,40 @@ def decode_energy_sums(buf):
             unpack(b'<f', buf.read(WORD))[0]]
 
 
+def decode_external_timestamp(buf, mask):
+    """
+    External time stamps come in from the front panel, we will need to be able to decode them so that
+    we can do cross system time correlations. This time works exactly like the channel event time
+    in the header.
+    :param buf: The buffer we'll be decoding
+    :param mask: The mask we need to decode the data.
+    :return:
+    """
+    return [unpack('I', buf.read(WORD))[0],
+            (unpack('I', buf.read(WORD))[0] & mask.event_time_high()[0])
+            >> mask.event_time_high()[1]]
+
+
+def decode_qdc(buf):
+    """
+    The Pixie-16 modules collect QDC Sums of each signal they process. They're stored in 8 words.
+    :param buf: Buffer containing the QDC data
+    :return: An array containing the QDC data
+    """
+    qdc = []
+    for chunk in iter(partial(buf.read, WORD), b''):
+        qdc.append(unpack('I', chunk)[0])
+    return qdc
+
+def decode_trace(buf):
+    """
+    Pixie-16 stores traces with two samples per word. This is about the only place we need to use
+    a half word to decode the data structure.
+    :param buf: The buffer containing the trace.
+    :return:
+    """
+
+
 def process_header_code(header_length, mask):
     header_info = {}
     if header_length in [HeaderCodes.HEADER_W_ETS, HeaderCodes.HEADER_W_ESUM_ETS,
@@ -106,30 +140,30 @@ def process_header_code(header_length, mask):
 
     if HeaderCodes.HEADER_W_QDC:
         has_qdc = True
-        qdc_offset = header_length - mask.GetNumberOfQdcWords()
+        qdc_offset = header_length - mask.number_of_qdc_words()
     if HeaderCodes.HEADER_W_ESUM:
         has_energy_sums = True
-        energy_sums_offset = header_length - mask.GetNumberOfEnergySumWords()
+        energy_sums_offset = header_length - mask.number_of_energy_sum_words()
     if HeaderCodes.HEADER_W_ESUM_ETS:
         has_external_timestamp = has_energy_sums = True
-        energy_sums_offset = header_length - mask.GetNumberOfEnergySumWords() \
-                             - mask.GetNumberOfExternalTimestampWords()
+        energy_sums_offset = header_length - mask.number_of_energy_sum_words() \
+                             - mask.number_of_external_timestamp_words()
     if HeaderCodes.HEADER_W_ESUM_QDC:
         has_energy_sums = has_qdc = True
-        energy_sums_offset = header_length - mask.GetNumberOfEnergySumWords() \
-                             - mask.GetNumberOfQdcWords()
-        qdc_offset = header_length - mask.GetNumberOfQdcWords()
+        energy_sums_offset = header_length - mask.number_of_energy_sum_words() \
+                             - mask.number_of_qdc_words()
+        qdc_offset = header_length - mask.number_of_qdc_words()
     if HeaderCodes.HEADER_W_ESUM_QDC_ETS:
         has_energy_sums = has_external_timestamp = has_qdc = True
         energy_sums_offset = header_length \
-                             - mask.GetNumberOfExternalTimestampWords() \
-                             - mask.GetNumberOfQdcWords() - mask.GetNumberOfEnergySumWords()
-    qdc_offset = header_length - mask.GetNumberOfExternalTimestampWords() \
-                 - mask.GetNumberOfQdcWords()
+                             - mask.number_of_external_timestamp_words() \
+                             - mask.number_of_qdc_words() - mask.number_of_energy_sum_words()
+        qdc_offset = header_length - mask.number_of_external_timestamp_words() \
+                     - mask.number_of_qdc_words()
     if HeaderCodes.HEADER_W_QDC_ETS:
         has_qdc = has_external_timestamp = True
-        qdc_offset = header_length - mask.GetNumberOfExternalTimestampWords() \
-                     - mask.GetNumberOfQdcWords()
+        qdc_offset = header_length - mask.number_of_external_timestamp_words() \
+                     - mask.number_of_qdc_words()
 
     return header_info
 
@@ -162,6 +196,8 @@ def decode_listmode_data(stream, mask):
             raise BufferError('Unexpected Header Length: %s\n\tCRATE:SLOT:CHAN = %s:%s:%s'
                               % (decoded_data['header_length'], decoded_data['crate'],
                                  decoded_data['slot'], decoded_data['channel']))
+
+        header_info = process_header_code(decoded_data['header_length'], mask)
 
         decoded_data_list.append(decoded_data)
     return decoded_data_list

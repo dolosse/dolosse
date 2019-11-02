@@ -7,6 +7,8 @@ date: March 5, 2019
 from io import BytesIO
 import unittest
 
+from dolosse.hardware.xia.pixie16.tests.test_data import Pixie16TestData as td
+
 import dolosse.hardware.xia.pixie16.list_mode_data_decoder as decoder
 import dolosse.hardware.xia.pixie16.list_mode_data_mask as lmdm
 
@@ -16,11 +18,14 @@ class ListModeDataDecoderTestCase(unittest.TestCase):
     """
     Test fixture for the List Mode Data Decoder functions
     """
+
     def setUp(self):
         """
         Configures the data mask for all the tests to use
         """
-        self.mask = lmdm.ListModeDataMask(250, 30474)
+        self.frequency = 250
+        self.firmware = 30474
+        self.mask = lmdm.ListModeDataMask(self.frequency, self.firmware)
 
     def test_decode_word_zero(self):
         """
@@ -33,7 +38,7 @@ class ListModeDataDecoderTestCase(unittest.TestCase):
             'header_length': 4,
             'event_length': 4,
             'finish_code': 0
-        }, decoder.decode_word_zero(540717, self.mask))
+        }, decoder.decode_word_zero(td.header(self.frequency, self.firmware)[0], self.mask))
 
     def test_decode_word_two(self):
         """
@@ -44,7 +49,7 @@ class ListModeDataDecoderTestCase(unittest.TestCase):
             'cfd_fractional_time': 0,
             'cfd_trigger_source_bit': 0,
             'cfd_forced_trigger_bit': 0
-        }, decoder.decode_word_two(26001, self.mask))
+        }, decoder.decode_word_two(td.header(self.frequency, self.firmware)[2], self.mask))
 
     def test_decode_word_three(self):
         """
@@ -54,17 +59,30 @@ class ListModeDataDecoderTestCase(unittest.TestCase):
             'energy': 2345,
             'trace_length': 0,
             'trace_out_of_range': 0
-        }, decoder.decode_word_three(2345, self.mask))
+        }, decoder.decode_word_three(td.header(self.frequency, self.firmware)[3], self.mask))
 
     def test_decode_energy_sums(self):
         """
         Test that we can decode the energy sums. These can be tricky
         b/c the baseline is encoded in IEEE 754 format.
         """
-        result = decoder.decode_energy_sums(
-            BytesIO(b'\x0C\x00\x00\x00\x0D\x00\x00\x00\x0E\x00\x00\x00\xA7\x4B\x6C\x45'))
-        self.assertEqual([12, 13, 14], result[:3])
+        result = decoder.decode_energy_sums(BytesIO(td.esums(True)))
+        self.assertEqual(td.esums()[:3], result[:3])
         self.assertAlmostEqual(3780.72827148438, result[3])
+
+
+    def test_decode_external_timestamp(self):
+        """
+        Tests that we can decode external timestamps appropriately.
+        """
+        self.assertEqual(td.external_timestamp(), decoder.decode_external_timestamp(
+            BytesIO(td.external_timestamp(True)), self.mask))
+
+    def test_decode_qdc(self):
+        """
+        Tests that we can decode the QDC header into an array.
+        """
+        self.assertEqual(td.qdc(), decoder.decode_qdc(BytesIO(td.qdc(True))))
 
     def test_decode_listmode_data(self):
         """
@@ -72,7 +90,7 @@ class ListModeDataDecoderTestCase(unittest.TestCase):
         """
         self.assertEqual(
             decoder.decode_listmode_data(
-                BytesIO(b'\x2D\x40\x08\x00\x15\xCD\x5B\x07\x91\x65\x00\x00\x29\x09\x00\x00'),
+                BytesIO(td.header(self.frequency, self.firmware, True)),
                 self.mask),
             [{
                 'channel': 13,
