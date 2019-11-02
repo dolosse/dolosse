@@ -158,7 +158,7 @@ def decode_listmode_data(stream, mask):
         decoded_data.update(
             decode_word_three(unpack('I', stream.read(WORD))[0], mask))
 
-        if decoded_data['header_length'] not in HeaderCodes:
+        if decoded_data['header_length'] not in HeaderCodes._value2member_map_:
             raise BufferError('Unexpected Header Length: %s\n\tCRATE:SLOT:CHAN = %s:%s:%s'
                               % (decoded_data['header_length'], decoded_data['crate'],
                                  decoded_data['slot'], decoded_data['channel']))
