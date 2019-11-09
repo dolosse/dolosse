@@ -7,7 +7,7 @@ date: March 5, 2019
 from io import BytesIO
 import unittest
 
-from dolosse.hardware.xia.pixie16.tests.test_data import Pixie16TestData as td
+from dolosse.hardware.xia.pixie16.tests.test_data import Pixie16TestData as td, pack_data
 
 import dolosse.hardware.xia.pixie16.list_mode_data_decoder as decoder
 import dolosse.hardware.xia.pixie16.list_mode_data_mask as lmdm
@@ -88,10 +88,13 @@ class ListModeDataDecoderTestCase(unittest.TestCase):
         """
         self.assertEqual(td.trace(), decoder.decode_trace(BytesIO(td.trace(True))))
 
+    def test_process_optional_header_data_bad_header_length(self):
+        """Tests that we raise a Value Error when decoding a bad header length."""
+        with self.assertRaises(ValueError):
+            decoder.process_optional_header_data(BytesIO(td.external_timestamp(True)), 3, self.mask)
+
     def test_process_optional_header_data(self):
-        """
-        Test that we can process all the various header data correctly.
-        """
+        """ Test that we can process all the various header data correctly. """
         self.assertDictEqual({'external_timestamp': td.external_timestamp()},
                              decoder.process_optional_header_data(
                                  BytesIO(td.external_timestamp(True)),
@@ -132,6 +135,19 @@ class ListModeDataDecoderTestCase(unittest.TestCase):
                          decoder.decode_listmode_data(
                              BytesIO(td.header_with_trace(as_bytes=True) + td.trace(True)),
                              self.mask))
+
+    def test_decode_listmode_data_bad_header_length(self):
+        header = td.header()
+        header[0] = 561197
+        with self.assertRaises(BufferError):
+            decoder.decode_listmode_data(BytesIO(pack_data(header, "I")), self.mask)
+
+    def test_decode_listmode_data_bad_event_length(self):
+        header = td.header()
+        header[0] = 671789
+        header[3] = 657705
+        with self.assertRaises(ValueError):
+            decoder.decode_listmode_data(BytesIO(pack_data(header, "I")), self.mask)
 
 
 if __name__ == '__main__':

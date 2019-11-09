@@ -187,8 +187,8 @@ def decode_listmode_data(stream, mask):
                                  decoded_data['slot'], decoded_data['channel']))
 
         if decoded_data['trace_length'] != 0:
-            if decoded_data['event_length'] - decoded_data['header_length'] \
-                    == decoded_data['trace_length'] * 0.5:
+            if (decoded_data['event_length'] - decoded_data['header_length']) \
+                    == (decoded_data['trace_length'] * 0.5):
                 decoded_data.update({'trace': decode_trace(BytesIO(stream.read(
                     WORD * int(decoded_data['trace_length'] * 0.5))))})
             else:
