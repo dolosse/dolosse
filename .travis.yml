@@ -2,11 +2,14 @@ language: python
 python:
 - '3.5'
 - '3.6'
-- 3.7-dev
+- '3.7'
 install:
 - pip install -r requirements.txt
+- pip install coverage
 script:
-- python -m unittest discover -v ./ "*_tests.py"
+- coverage run -m unittest discover -v ./ "*_tests.py"
 notifications:
   slack:
     secure: IK9U/MuiiuKXxuwI+Pn6HwU1xaZpBcO0w6Iy3ovlczR7O+gxJIfZD92Iq+hg69vVBjHnpyrMC69qXGN28Biy+K/wweHDa5kdcs0NHPl8Myj3dz7ptf8Xb2HvVghAB5wesBLXofep7awgpOEgCiQHTB8V2N+faA3axQekI4XmQqth85W7cPVdIAeIqO5rfITMGlqu97sJQbakukcsFe3P1aYGV1owjpYEYctCko+6LOkg1zAn7xmS/5CAB7+EYNkAu2JAsVPls4yZlrcZ5Gjc2omWgtHv6wZgy0O+3TV4ind+vAdmDU0Ay3lllvOpTkrlOC3onTYCyrbbma7pNliYf9CHlwEuri+ct2wJr2JlcyN5Yx87LsQdjxBp4E9hND/JPQRtNX1OSJC8n3OAj8Rbhzib1sHiObZ8LUvdLOF0nIk97yWpS4dUba+UQEGdpmfOllF/44rOBUjgwiH67ByGpCj1IIqwBshYandjgFX0Q+kCRUTPrQGnb4M5jFHoXRu4BtAY02FsT5N/A6flG8pAOyLnkoXFJmL8g8waWO905CHEQHjnq0WdA5gGkX+lXJ+TB1zLCJ9blIpKldCNJxoHin57emwdFMbPQq9Agyo2pC9HmX1icAWpJzdnBdVDbCgiv1b3AwR+8MIhlH1shpCYUm/Aho+dfwTCYAeuGHKpvu4=
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
