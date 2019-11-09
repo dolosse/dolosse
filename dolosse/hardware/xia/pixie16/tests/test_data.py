@@ -21,9 +21,6 @@ def pack_data(data, type):
 
 
 class Pixie16TestData:
-    def __init__(self):
-        pass
-
     @staticmethod
     def qdc(as_bytes=False):
         data = [123, 456, 789, 987, 654, 321, 147, 258]
