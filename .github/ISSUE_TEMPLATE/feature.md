@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Create a bug report to help improve the project.
+about: Suggest a new feature or change for the project.
 labels: enhancement, needs vetted
 ---
 <!--- Provide a general summary of the issue in the Title above -->
