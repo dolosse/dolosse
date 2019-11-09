@@ -9,7 +9,7 @@ date: January 16, 2019
 class ListModeDataMask:
     """ Defines data masks used to decode data from XIA's Pixie-16 product line. """
 
-    def __init__(self, frequency, firmware):
+    def __init__(self, frequency=250, firmware=30474):
         if frequency not in [100, 250, 500]:
             raise ValueError(self.__class__.__name__ + ": Please specify a valid frequency "
                                                        "[100, 250, 500].")
@@ -161,4 +161,4 @@ class ListModeDataMask:
     def generate_value_error_message(self, name):
         """ Generates the string used for ValueErrors """
         return "%s::%s - Could not determine the appropriate mask for firmware (%s) and " \
-               "frequency (%s)" % self.__class__.__name__, name, self.firmware, self.frequency
+               "frequency (%s)" % (self.__class__.__name__, name, self.firmware, self.frequency)
