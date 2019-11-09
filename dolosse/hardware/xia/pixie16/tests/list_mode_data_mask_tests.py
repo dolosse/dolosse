@@ -63,13 +63,15 @@ class lmdmaskTestCase(unittest.TestCase):
                 if firm == 20466:
                     self.assertEqual((0xFFFF0000, 16),
                                      lmdmask(freq, firm).cfd_fractional_time())
-                if 27361 <= firm <= 29432:
+                elif 27361 <= firm <= 29432:
                     self.assertEqual((0x7FFF0000, 16), lmdmask(freq, firm).cfd_fractional_time())
+                else:
+                    self.assertEqual((0x3FFF0000, 16), lmdmask(freq, firm).cfd_fractional_time())
             elif freq == 500:
                 if firm >= 29432:
                     self.assertEqual((0x1FFF0000, 16), lmdmask(freq, firm).cfd_fractional_time())
-            else:
-                self.assertEqual((0x3FFF0000, 16), lmdmask(freq, firm).cfd_fractional_time())
+                else:
+                    self.assertEqual((0x3FFF0000, 16), lmdmask(freq, firm).cfd_fractional_time())
 
     def test_cdf_size(self):
         """ Tests the CFD Size, which we use to reconstruct the trigger's arrival time """
@@ -77,10 +79,8 @@ class lmdmaskTestCase(unittest.TestCase):
             if freq == 100:
                 if 17562 <= firm < 30474:
                     self.assertEqual(65536, lmdmask(freq, firm).cfd_size())
-                elif firm >= 30474:
+                if firm >= 30474:
                     self.assertEqual(32768, lmdmask(freq, firm).cfd_size())
-                else:
-                    self.assertEqual(16384, lmdmask(freq, firm).cfd_size())
             elif freq == 250:
                 if firm == 20466:
                     self.assertEqual(65536, lmdmask(freq, firm).cfd_size())
