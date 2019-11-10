@@ -30,7 +30,7 @@ the project motivation in [this presentation](https://dolosse.org/modernizing-nu
 You can also checkout the [wiki](https://github.com/dolosse/dolosse/wiki). 
 
 ## Support
-Checkout the [support] (https://github.com/dolosse/dolosse/blob/master/.github/SUPPORT.md) page for more information. 
+Checkout the [support](https://github.com/dolosse/dolosse/blob/master/.github/SUPPORT.md) page for more information. 
 
 # Installation
 There are a couple of ways to use the software. They depend on the goal that you're after. 
