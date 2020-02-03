@@ -1,5 +1,5 @@
 """
-file: pixie-net-consumer.py
+file: pixie_net-consumer.py
 brief: A Kafka consumer that processes Pixie16 data. Creates a thread for each partition plus extra.
 author: S. V. Paulauskas
 date: March 30, 2019
@@ -23,11 +23,11 @@ def service_shutdown(signum, frame):
 
 
 consumer = Consumer({'bootstrap.servers': '192.168.1.25:9092',
-                     'group.id': 'pixie-net-consumer',
+                     'group.id': 'pixie_net_consumer',
                      'default.topic.config': {
                          'auto.offset.reset': 'latest'},
                      'auto.commit.interval.ms': 500})
-consumer.subscribe(['pixie-net'])
+consumer.subscribe(['pixie_net'])
 
 timeouts = records = 0
 messages__in_interval = errors_in_interval = idle_time_in_interval = 0
