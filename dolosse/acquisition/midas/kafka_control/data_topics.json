@@ -1,0 +1,6 @@
+{
+    "category": "data_topics",
+    "technique": "rbs",
+    "run_number": 0,
+    "topics": ["rbs_adc_1", "rbs_adc_2", "rbs_scalar_1"]
+}

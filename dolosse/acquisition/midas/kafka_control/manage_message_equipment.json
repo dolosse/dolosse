@@ -1,0 +1,10 @@
+{
+    "category": "equipment",
+    "technique": "rbs",
+    "run_number": 0,
+    "equipment": {
+        "name" :        ["TDC", "ADC", "QDC"],
+        "channels" :    ["2", "2", "2"],
+        "masks": ["0x0003", "0x0003", "0x0001"]
+    }
+}
