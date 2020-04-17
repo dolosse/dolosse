@@ -1,0 +1,58 @@
+#####################################################################
+#
+#  Name:         makefile.nt
+#  Created by:   Stefan Ritt
+#
+#  Contents:     Makefile for MIDAS example frontend and analyzer
+#                under Windows NT 
+#
+#  $Id$
+#
+#####################################################################
+
+
+#-------------------------------------------------------------------
+# The following lines define direcories. Adjust if necessary
+#                 
+MIDAS_DIR       = \midas
+INC_DIR         = $(MIDAS_DIR)\include
+DRV_DIR         = $(MIDAS_DIR)\drivers
+SRC_DIR         = $(MIDAS_DIR)\src
+LIB_DIR         = $(MIDAS_DIR)\nt\lib
+ZLIB_DIR        = $(MIDAS_DIR)\nt\lib
+ROOT_DIR        = $(ROOTSYS)
+
+#-------------------------------------------------------------------
+# List of analyzer modules
+#                 
+MODULES = adccalib.obj adcsum.obj scaler.obj
+
+####################################################################
+# Lines below here should not be edited
+####################################################################
+
+LIBRARY = $(LIB_DIR)\midas.lib
+
+# compiler
+CC = cl
+CFLAGS = /I$(INC_DIR) /I$(ROOT_DIR)/include /nologo /EHsc /D WIN32
+
+all: frontend.exe analyzer.exe
+
+frontend.exe:  $(LIBRARY) $(LIB_DIR)\mfe.obj $(SRC_DIR)\cnaf_callback.c frontend.c $(DRV_DIR)\camac\camacnul.c
+  $(CC) $(CFLAGS) /Fefrontend.exe frontend.c $(SRC_DIR)\cnaf_callback.c $(DRV_DIR)\camac\camacnul.c $(LIB_DIR)\mfe.obj $(LIBRARY) $(LIBS) wsock32.lib
+
+analyzer.exe: $(LIBRARY) rmana.obj analyzer.obj $(MODULES)
+  $(CC) /D USE_ROOT /Feanalyzer.exe rmana.obj analyzer.obj \
+    $(MODULES) libCore.lib libTree.lib libHist.lib libRint.lib $(ZLIB_DIR)\zlib.lib \
+    $(LIBRARY) $(LIBS) wsock32.lib /link /libpath:"$(ROOT_DIR)/lib"
+
+.c.obj:
+  $(CC) $(CFLAGS) /TP /c $<
+
+rmana.obj: $(SRC_DIR)\mana.c
+  $(CC) $(CFLAGS) /D USE_ROOT  /TP /c $(SRC_DIR)\mana.c /Fo"rmana.obj"
+
+clean:
+  del *.obj *.exe
+  

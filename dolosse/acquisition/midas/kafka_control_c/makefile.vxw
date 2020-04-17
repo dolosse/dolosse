@@ -1,0 +1,52 @@
+#####################################################################
+#
+#  Name:         Makefile
+#  Created by:   Stefan Ritt
+#
+#  Contents:     Makefile for MIDAS example frontend undex VxWorks
+#
+#  Revision history
+#  ------------------------------------------------------------------
+#  date         by    modification
+#  ---------    ---   -----------------------------------------------
+#  08-MAR-98    SR    created
+#
+#####################################################################
+
+#
+# Tools
+#
+CC = cc68k
+LD = ld68k
+RM = rm
+
+#
+# Midas input directories
+#                 
+INC_DIR 	= /tornado/target/h
+OBJ_DIR 	= /tornado/target/lib
+
+#
+# Compiler flags
+#
+CPU = MC68020
+CFLAGS = -m68020 -msoft-float -O -fvolatile -fno-builtin \
+-I$(INC_DIR) -I. \
+-ansi -nostdinc -DCPU=$(CPU) -g
+OSFLAGS = -DOS_VXWORKS
+
+####################################################################
+
+LIB = $(OBJ_DIR)/libmidas.a
+OBJS = frontend.o camacnul.o
+
+all: frontend.a
+
+frontend.a:  $(LIB) $(OBJ_DIR)/mfe.o $(OBJS)
+	$(LD) -o frontend.a -r $(OBJ_DIR)/mfe.o $(OBJS)
+
+.c.o:
+	$(CC) $(CFLAGS) $(OSFLAGS) -c $<
+
+clean:
+	$(RM) -f $(OBJS) *~ \#*
