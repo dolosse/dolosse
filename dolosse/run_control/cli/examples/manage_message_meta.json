@@ -1,0 +1,13 @@
+{
+    "category": "meta",
+    "technique": "rbs",
+    "run_number": 0,
+    "amp_gain": 0,
+    "amp_offset": 0,
+    "beam_energy_meV": 2.2,
+    "charge_uC": 20,
+    "scattering_angle": 165,
+    "tilt_angle": 0,
+    "beam_type": "He(2+)",
+    "sample_acquisition_times": [265, 0, 0]
+}
