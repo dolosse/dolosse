@@ -4,12 +4,14 @@ brief: implementing midas run control through kafka topics, by connecting to the
 author: Caswell Pieters
 date: 18 February 2020
 """
-import midas.client
-from confluent_kafka import Consumer, Producer, KafkaException
+
 import json
-import yaml
 import sys
-from time import sleep
+import threading
+import yaml
+
+from confluent_kafka import Consumer, Producer, KafkaException
+import midas.client
 
 
 class ControlMessage:
@@ -28,34 +30,6 @@ class ControlMessage:
             client.resume_run()
 
 
-def control_init():
-    global topics, topic_errors, topic_feedback, group_id, expt_name, host_name, consumer, producer
-    # read yaml file
-    with open('midas_kafka_control.yaml') as yf:
-        config = yaml.safe_load(yf)
-    bootstrap_servers = config['kafka']['bootstrap_servers']
-    topics = [config['kafka']['topics']['control']]
-    topic_errors = config['kafka']['topics']['errors']
-    topic_feedback = config['kafka']['topics']['feedback']
-    group_id = config['kafka']['group_id']
-    expt_name = config['kafka']['expt_name']
-    host_name = config['kafka']['expt_host']
-
-    # consumer configuration
-    kafka_conf = {'bootstrap.servers': bootstrap_servers, 'group.id': group_id, 'session.timeout.ms': 6000,
-                  'auto.offset.reset': 'latest'}
-
-    # producer configuration
-    kafka_conf_prod = {'bootstrap.servers': bootstrap_servers}
-
-    # create consumer
-    consumer = Consumer(kafka_conf)
-    consumer.subscribe(topics)
-
-    # create producer
-    producer = Producer(**kafka_conf_prod)
-
-
 def delivery_callback(err, msg):
     if err:
         sys.stderr.write('%% Message failed delivery: %s\n' % err)
@@ -64,7 +38,13 @@ def delivery_callback(err, msg):
                          (msg.topic(), msg.partition(), msg.offset()))
 
 
-def midas_info(equipment, run_state, run_number, events, evt_rate, kb_rate, error, feedback):
+def key_capture_thread():
+    global keep_going
+    input()
+    keep_going = False
+
+
+def midas_info(equipment):
     global producer, topic_feedback, topic_errors
 
     daq_states = ['Stopped', 'Paused', 'Running']
@@ -103,44 +83,58 @@ def midas_info(equipment, run_state, run_number, events, evt_rate, kb_rate, erro
 
 
 if __name__ == "__main__":
-    topics = []
-    topic_errors = topic_feedback = group_id = expt_name = host_name = ' '
-    consumer = producer = None
-    daq_run_state = 1
-    daq_run_number = daq_events = daq_evt_rate = daq_kb_rate = 0
-    daq_feedback = daq_error = 'None'
-    midas_equipment = 'Trigger'
+    keep_going = True
 
-    control_init()
+    # read yaml file
+    with open('midas_kafka_control.yaml') as yf:
+        config = yaml.safe_load(yf)
+    bootstrap_servers = config['kafka']['bootstrap_servers']
+    topics = [config['kafka']['topics']['control']]
+    topic_errors = config['kafka']['topics']['errors']
+    topic_feedback = config['kafka']['topics']['feedback']
+    group_id = config['kafka']['group_id']
+    expt_name = config['kafka']['expt_name']
+    host_name = config['kafka']['expt_host']
+    midas_equipment = config['kafka']['midas_equipment']
+
+    # consumer configuration
+    kafka_conf = {'bootstrap.servers': bootstrap_servers, 'group.id': group_id, 'session.timeout.ms': 6000,
+                  'auto.offset.reset': 'latest'}
+
+    # producer configuration
+    kafka_conf_prod = {'bootstrap.servers': bootstrap_servers}
+
+    # create consumer
+    consumer = Consumer(kafka_conf)
+    consumer.subscribe(topics)
+
+    # create producer
+    producer = Producer(**kafka_conf_prod)
 
     client = midas.client.MidasClient("kafka_control", host_name=host_name, expt_name=expt_name)
 
-    try:
-        while True:
-            midas_info(midas_equipment, daq_run_state, daq_run_number, daq_events,
-                       daq_evt_rate, daq_kb_rate, daq_error, daq_feedback)
-            msg = consumer.poll(timeout=1.0)
-            if msg is None:
-                continue
-            if msg.error():
-                raise KafkaException(msg.error())
-            else:
-                # Proper message
-                sys.stderr.write('%% %s [%d] at offset %d with key %s:\n' %
-                                 (msg.topic(), msg.partition(), msg.offset(),
-                                  str(msg.key())))
-                json_data = json.loads(msg.value())
-                control_msg = ControlMessage(json_data)
-                control_msg.execute()
-        sleep(1)
+    threading.Thread(target=key_capture_thread, args=(), name='key_capture_thread',
+                     daemon=True).start()
 
-    except KeyboardInterrupt:
-        sys.stderr.write('%% Aborted by user\n')
+    while keep_going:
+        midas_info(midas_equipment)
+        msg = consumer.poll(timeout=1.0)
+        if msg is None:
+            continue
+        if msg.error():
+            raise KafkaException(msg.error())
+        else:
+            # Proper message
+            sys.stderr.write('%% %s [%d] at offset %d with key %s:\n' %
+                             (msg.topic(), msg.partition(), msg.offset(),
+                              str(msg.key())))
+            json_data = json.loads(msg.value())
+            control_msg = ControlMessage(json_data)
+            control_msg.execute()
 
-    finally:
-        # Close down consumer to commit final offsets.
-        consumer.close()
-        # Wait for messages to be delivered
-        producer.flush()
-        # disconnect from midas experiment
-        client.disconnect()
+    # Close down consumer to commit final offsets.
+    consumer.close()
+    # Wait for messages to be delivered
+    producer.flush()
+    # disconnect from midas experiment
+    client.disconnect()

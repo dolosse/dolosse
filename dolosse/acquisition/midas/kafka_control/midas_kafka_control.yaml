@@ -2,8 +2,9 @@ kafka:
     bootstrap_servers: 196.24.232.101
     group_id_interface: rbs_control_interface
     group_id: rbs_control
-    expt_name: rbs_kafka
-    expt_host: kilowog.tlabs.ac.za
+    expt_name: test3
+    expt_host: localhost
+    midas_equipment: Trigger
     topics:
         control: rbs_midas_control
         manage: rbs_midas_manage
