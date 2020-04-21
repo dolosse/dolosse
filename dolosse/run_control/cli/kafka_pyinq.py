@@ -33,7 +33,7 @@ class PathValidator(Validator):
         ok = regex.match('^(/[^/ ]*)+/?$', document.text)
         if not ok:
             raise ValidationError(
-                message='Please enter a valid pathname',
+                message='Please enter a valid absolute pathname',
                 cursor_position=len(document.text))  # Move cursor to end
 
 
