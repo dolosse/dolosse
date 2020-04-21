@@ -30,10 +30,15 @@ class RunNumberValidator(Validator):
 
 class PathValidator(Validator):
     def validate(self, document):
-        ok = regex.match('^(/[^/ ]*)+/?$', document.text)
-        if not ok:
+        path_ok = regex.match('^(/[^/ ]*)+/?$', document.text)
+        file_ok = Path(document.text).exists()
+        if not path_ok:
             raise ValidationError(
                 message='Please enter a valid absolute pathname',
+                cursor_position=len(document.text))  # Move cursor to end
+        if not file_ok:
+            raise ValidationError(
+                message='File does not exist',
                 cursor_position=len(document.text))  # Move cursor to end
 
 
@@ -133,31 +138,25 @@ def command_interface():
             metadata_filename = Path(start_answers['metadata'])
             run_number = start_answers['run_number']
 
-            if not equipment_filename.exists():
-                print('Equipment file does not appear to exist')
-            elif not metadata_filename.exists():
-                print('Metadata file does not appear to exist')
-            else:
-                print('Files check out!')
-                with open(equipment_filename) as ef:
-                    equipment_json = json.dumps(json.loads(ef.read()))
-                with open(metadata_filename) as mf:
-                    metadata_json = json.dumps(json.loads(mf.read()))
+            with open(equipment_filename) as ef:
+                equipment_json = json.dumps(json.loads(ef.read()))
+            with open(metadata_filename) as mf:
+                metadata_json = json.dumps(json.loads(mf.read()))
 
-                # compose control message
-                control_json = json.dumps({"category": "control", "run": {"action": answers['command'],
-                                                                          "run_number": run_number}})
-                control_msg = Message(topic_control, control_json)
-                control_msg.execute()
+            # compose control message
+            control_json = json.dumps({"category": "control", "run": {"action": answers['command'],
+                                                                      "run_number": run_number}})
+            control_msg = Message(topic_control, control_json)
+            control_msg.execute()
 
-                manage_msg = Message(topic_manage, control_json)
-                manage_msg.execute()
+            manage_msg = Message(topic_manage, control_json)
+            manage_msg.execute()
 
-                manage_msg.json = equipment_json
-                manage_msg.execute()
+            manage_msg.json = equipment_json
+            manage_msg.execute()
 
-                manage_msg.json = metadata_json
-                manage_msg.execute()
+            manage_msg.json = metadata_json
+            manage_msg.execute()
 
         elif answers['command'] == 'Exit':
             # Wait until all messages have been delivered
