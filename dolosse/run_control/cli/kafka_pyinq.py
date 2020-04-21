@@ -6,7 +6,6 @@ date: 24 March 2020
 """
 
 from __future__ import print_function, unicode_literals
-from datetime import datetime
 import json
 import os
 from pathlib import Path
@@ -128,9 +127,6 @@ def command_interface():
 
         answers = prompt(run_question, style=style)
 
-        # add time
-        date = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
-
         if answers['command'] == 'Start':
             start_answers = prompt(start_questions, style=style)
             equipment_filename = Path(start_answers['equipment'])
@@ -150,8 +146,7 @@ def command_interface():
 
                 # compose control message
                 control_json = json.dumps({"category": "control", "run": {"action": answers['command'],
-                                                                          "run_number": run_number,
-                                                                          "date": date}})
+                                                                          "run_number": run_number}})
                 control_msg = Message(topic_control, control_json)
                 control_msg.execute()
 
@@ -176,8 +171,7 @@ def command_interface():
 
         else:
             control_json = json.dumps({"category": "control", "run": {"action": answers['command'],
-                                                                      "run_number": run_number,
-                                                                      "date": date}})
+                                                                      "run_number": run_number}})
             control_msg = Message(topic_control, control_json)
             control_msg.execute()
 
