@@ -6,13 +6,13 @@ date: 24 March 2020
 """
 
 from __future__ import print_function, unicode_literals
-import json
+from json import loads, dumps
 import os
 from pathlib import Path
-import regex
+from regex import match
 import sys
 from threading import Thread
-import yaml
+from yaml import safe_load
 
 from colorama import Fore, Style
 from confluent_kafka import Producer, Consumer, KafkaException
@@ -21,7 +21,7 @@ from PyInquirer import style_from_dict, Token, prompt, Validator, ValidationErro
 
 class RunNumberValidator(Validator):
     def validate(self, document):
-        ok = regex.match('^(0|[1-9][0-9]{0,9})$', document.text)
+        ok = match('^(0|[1-9][0-9]{0,9})$', document.text)
         if not ok:
             raise ValidationError(
                 message='Please enter a positive or zero run number',
@@ -30,7 +30,7 @@ class RunNumberValidator(Validator):
 
 class PathValidator(Validator):
     def validate(self, document):
-        path_ok = regex.match('^(/[^/ ]*)+/?$', document.text)
+        path_ok = match('^(/[^/ ]*)+/?$', document.text)
         file_ok = Path(document.text).exists()
         if not path_ok:
             raise ValidationError(
@@ -139,13 +139,13 @@ def command_interface():
             run_number = start_answers['run_number']
 
             with open(equipment_filename) as ef:
-                equipment_json = json.dumps(json.loads(ef.read()))
+                equipment_json = dumps(loads(ef.read()))
             with open(metadata_filename) as mf:
-                metadata_json = json.dumps(json.loads(mf.read()))
+                metadata_json = dumps(loads(mf.read()))
 
             # compose control message
-            control_json = json.dumps({"category": "control", "run": {"action": answers['command'],
-                                                                      "run_number": run_number}})
+            control_json = dumps({"category": "control", "run": {"action": answers['command'],
+                                                                 "run_number": run_number}})
             control_msg = Message(topic_control, control_json)
             control_msg.execute()
 
@@ -169,8 +169,8 @@ def command_interface():
             clear()
 
         else:
-            control_json = json.dumps({"category": "control", "run": {"action": answers['command'],
-                                                                      "run_number": run_number}})
+            control_json = dumps({"category": "control", "run": {"action": answers['command'],
+                                                                 "run_number": run_number}})
             control_msg = Message(topic_control, control_json)
             control_msg.execute()
 
@@ -187,7 +187,7 @@ def status_readout():
             # Proper message
             sys.stderr.write('%% %s [%d] at offset %d with key %s:\n' %
                              (msg.topic(), msg.partition(), msg.offset(), str(msg.key())))
-            json_data = json.loads(msg.value())
+            json_data = loads(msg.value())
             if json_data['category'] == 'feedback':
                 daq_state = json_data['daq']['run_state']
                 daq_feedback = json_data['os']
@@ -209,7 +209,7 @@ if __name__ == '__main__':
 
     # read yaml file
     with open('kafka_interface.yaml') as yf:
-        config = yaml.safe_load(yf)
+        config = safe_load(yf)
     bootstrap_servers = config['kafka']['bootstrap_servers']
     topic_control = config['kafka']['topics']['control']
     topics = [config['kafka']['topics']['feedback'], config['kafka']['topics']['errors']]
