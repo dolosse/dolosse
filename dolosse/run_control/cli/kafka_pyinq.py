@@ -73,9 +73,8 @@ def delivery_callback(err, msg):
 
 
 # interactive command function
-def command_interface():
-    global run, daq_state, daq_error, daq_feedback, daq_evt_rate, daq_events, daq_kB_rate
-
+def command_interface(status):
+    global run
     # PyInquirer style settings
     style = style_from_dict({
         Token.Separator: '#cc5454',
@@ -123,10 +122,10 @@ def command_interface():
 
     while run:
         clear()
-        print(Fore.GREEN + "DAQ state: " + daq_state + Fore.RED + " | Last error: " +
-              daq_error + Fore.BLUE + " | Last report: " + daq_feedback + Fore.CYAN +
-              " | Evt. rate: " + str(round(float(daq_evt_rate), 2)) + Fore.GREEN + " | kB rate: " +
-              str(round(float(daq_kB_rate), 2)) + Fore.RED + " | Events: " + daq_events)
+        print(Fore.GREEN + "DAQ state: " + status['daq_state'] + Fore.RED + " | Last error: " +
+              status['daq_error'] + Fore.BLUE + " | Last report: " + status['daq_feedback'] + Fore.CYAN +
+              " | Evt. rate: " + str(round(float(status['daq_evt_rate']), 2)) + Fore.GREEN + " | kB rate: " +
+              str(round(float(status['daq_kB_rate']), 2)) + Fore.RED + " | Events: " + status['daq_events'])
 
         print(Style.RESET_ALL)
 
@@ -175,8 +174,7 @@ def command_interface():
             control_msg.execute()
 
 
-def status_readout():
-    global run, daq_state, daq_error, daq_feedback, daq_evt_rate, daq_events, daq_kB_rate
+def status_readout(status):
     while run:
         msg = consumer.poll(timeout=1.0)
         if msg is None:
@@ -189,13 +187,13 @@ def status_readout():
                              (msg.topic(), msg.partition(), msg.offset(), str(msg.key())))
             json_data = loads(msg.value())
             if json_data['category'] == 'feedback':
-                daq_state = json_data['daq']['run_state']
-                daq_feedback = json_data['os']
-                daq_evt_rate = str(json_data['daq']['evt_rate'])
-                daq_kB_rate = str(json_data['daq']['kB_rate'])
-                daq_events = str(json_data['daq']['events'])
+                status['daq_state'] = json_data['daq']['run_state']
+                status['daq_feedback'] = json_data['os']
+                status['daq_evt_rate'] = str(json_data['daq']['evt_rate'])
+                status['daq_kB_rate'] = str(json_data['daq']['kB_rate'])
+                status['daq_events'] = str(json_data['daq']['events'])
             elif json_data['category'] == 'errors':
-                daq_error = json_data['msg']
+                status['daq_error'] = json_data['msg']
 
     consumer.close()
 
@@ -214,9 +212,16 @@ def read_yaml_config(conf_dict):
 if __name__ == '__main__':
     # start in a state to begin execution, and set DAQ state to "normal"
     run = True
-    daq_state = 'Stopped'
-    daq_error = daq_feedback = 'None'
-    daq_evt_rate = daq_kB_rate = daq_events = "0"
+
+    # status parameters
+    daq_status = {
+        'daq_state': 'Stopped',
+        'daq_error': ' ',
+        'daq_feedback': ' ',
+        'daq_evt_rate': '0',
+        'daq_kB_rate': '0',
+        'daq_events': '0'
+    }
 
     # yaml parameters
     yaml_conf = {
@@ -251,8 +256,8 @@ if __name__ == '__main__':
         print('Could not subscribe to consumer topics - Consumer closed')
         run = False
 
-    t2 = Thread(target=command_interface)
-    t1 = Thread(target=status_readout)
+    t2 = Thread(target=command_interface, args=(daq_status, ))
+    t1 = Thread(target=status_readout, args=(daq_status, ))
 
     t1.start()
     t2.start()
