@@ -146,10 +146,10 @@ def command_interface():
             # compose control message
             control_json = dumps({"category": "control", "run": {"action": answers['command'],
                                                                  "run_number": run_number}})
-            control_msg = Message(topic_control, control_json)
+            control_msg = Message(yaml_conf['topic_control'], control_json)
             control_msg.execute()
 
-            manage_msg = Message(topic_manage, control_json)
+            manage_msg = Message(yaml_conf['topic_manage'], control_json)
             manage_msg.execute()
 
             manage_msg.json = equipment_json
@@ -171,7 +171,7 @@ def command_interface():
         else:
             control_json = dumps({"category": "control", "run": {"action": answers['command'],
                                                                  "run_number": run_number}})
-            control_msg = Message(topic_control, control_json)
+            control_msg = Message(yaml_conf['topic_control'], control_json)
             control_msg.execute()
 
 
@@ -200,6 +200,17 @@ def status_readout():
     consumer.close()
 
 
+def read_yaml_config(conf_dict):
+    # read yaml file
+    with open('kafka_interface.yaml') as yf:
+        config = safe_load(yf)
+    conf_dict['bootstrap_servers'] = config['kafka']['bootstrap_servers']
+    conf_dict['topic_control'] = config['kafka']['topics']['control']
+    conf_dict['topics'] = [config['kafka']['topics']['feedback'], config['kafka']['topics']['errors']]
+    conf_dict['group_id'] = config['kafka']['group_id_interface']
+    conf_dict['topic_manage'] = config['kafka']['topics']['manage']
+
+
 if __name__ == '__main__':
     # start in a state to begin execution, and set DAQ state to "normal"
     run = True
@@ -207,30 +218,32 @@ if __name__ == '__main__':
     daq_error = daq_feedback = 'None'
     daq_evt_rate = daq_kB_rate = daq_events = "0"
 
-    # read yaml file
-    with open('kafka_interface.yaml') as yf:
-        config = safe_load(yf)
-    bootstrap_servers = config['kafka']['bootstrap_servers']
-    topic_control = config['kafka']['topics']['control']
-    topics = [config['kafka']['topics']['feedback'], config['kafka']['topics']['errors']]
-    group_id = config['kafka']['group_id_interface']
-    topic_manage = config['kafka']['topics']['manage']
+    # yaml parameters
+    yaml_conf = {
+        'bootstrap_servers': ' ',
+        'topic_control': ' ',
+        'topics': [],
+        'group_id': ' ',
+        'topic_manage': ' '
+    }
+
+    read_yaml_config(yaml_conf)
 
     # configure producer
-    kafka_conf = {'bootstrap.servers': bootstrap_servers}
+    kafka_conf = {'bootstrap.servers': yaml_conf['bootstrap_servers']}
 
     # create producer
     producer = Producer(**kafka_conf)
 
     # consumer configuration
-    kafka_cons_conf = {'bootstrap.servers': bootstrap_servers, 'group.id': group_id,
+    kafka_cons_conf = {'bootstrap.servers': yaml_conf['bootstrap_servers'], 'group.id': yaml_conf['group_id'],
                        'session.timeout.ms': 6000,
                        'auto.offset.reset': 'latest'}
 
     # create consumer
     consumer = Consumer(kafka_cons_conf)
     try:
-        consumer.subscribe(topics)
+        consumer.subscribe(yaml_conf['topics'])
     except KafkaException:
         print('Kafka Error in subscribing to consumer topics')
         run = False
