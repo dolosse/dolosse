@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 import regex
 import sys
-import threading
+from threading import Thread
 import yaml
 
 from colorama import Fore, Style
@@ -125,8 +125,8 @@ def command_interface():
         clear()
         print(Fore.GREEN + "DAQ state: " + daq_state + Fore.RED + " | Last error: " +
               daq_error + Fore.BLUE + " | Last report: " + daq_feedback + Fore.CYAN +
-              " | Evt. rate: " + daq_evt_rate + Fore.GREEN + " | kB rate: " + daq_kB_rate +
-              Fore.RED + " | Events: " + daq_events)
+              " | Evt. rate: " + str(round(float(daq_evt_rate), 2)) + Fore.GREEN + " | kB rate: " +
+              str(round(float(daq_kB_rate), 2)) + Fore.RED + " | Events: " + daq_events)
 
         print(Style.RESET_ALL)
 
@@ -229,11 +229,17 @@ if __name__ == '__main__':
 
     # create consumer
     consumer = Consumer(kafka_cons_conf)
-    consumer.subscribe(topics)
+    try:
+        consumer.subscribe(topics)
+    except KafkaException:
+        print('Kafka Error in subscribing to consumer topics')
+        sys.exit(1)
+    except RuntimeError:
+        print('Could not subscribe to consumer topics - Consumer closed')
+        sys.exit(1)
 
-    lock = threading.Lock()
-    t2 = threading.Thread(target=command_interface)
-    t1 = threading.Thread(target=status_readout)
+    t2 = Thread(target=command_interface)
+    t1 = Thread(target=status_readout)
 
     t1.start()
     t2.start()
