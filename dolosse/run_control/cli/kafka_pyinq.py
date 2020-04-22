@@ -233,10 +233,10 @@ if __name__ == '__main__':
         consumer.subscribe(topics)
     except KafkaException:
         print('Kafka Error in subscribing to consumer topics')
-        sys.exit(1)
+        run = False
     except RuntimeError:
         print('Could not subscribe to consumer topics - Consumer closed')
-        sys.exit(1)
+        run = False
 
     t2 = Thread(target=command_interface)
     t1 = Thread(target=status_readout)
