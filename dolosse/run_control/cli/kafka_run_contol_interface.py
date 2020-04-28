@@ -62,12 +62,9 @@ class PathValidator(Validator):
                 cursor_position=len(document.text))  # Move cursor to end
 
 
-class KafkaMessage:
-    """This is a class for producing messages."""
-
-    def __init__(self, topic, json_msg, producer):
-        """
-        This constructor for the KafkaMessage class.
+def send_command(topic, json_msg, producer):
+    """
+        This functions sends the command received as a json message to a Kafka topic.
         :param topic : The Kafka control topic to produce to.
         :type topic : str
         :param json_msg : The json control message to produce.
@@ -75,22 +72,15 @@ class KafkaMessage:
         :param producer : The Kafka producer
         :type producer : Producer
         :return :
-        """
+    """
 
-        self.json = json_msg
-        self.topic = topic
-        self.producer = producer
+    try:
+        producer.produce(topic, json_msg, callback=delivery_callback)
+    except BufferError:
+        logging.warning('%% Local producer queue is full (%d messages awaiting delivery): try again\n' %
+                        len(producer))
 
-    def execute(self):
-        """Produce the message to the topic."""
-
-        try:
-            self.producer.produce(self.topic, self.json, callback=delivery_callback)
-        except BufferError:
-            logging.warning('%% Local producer queue is full (%d messages awaiting delivery): try again\n' %
-                            len(self.producer))
-
-        self.producer.flush()
+    producer.flush()
 
 
 def clear():
@@ -201,20 +191,18 @@ def command_interface(exit_event, status, t_manage, t_control, producer):
             with open(metadata_filename) as mf:
                 metadata_json = dumps(loads(mf.read()))
 
-            # compose control KafkaMessage
+            # compose control message
             control_json = dumps({"category": "control", "run": {"action": answers['command'],
                                                                  "run_number": run_number}})
-            control_msg = KafkaMessage(t_control, control_json, producer)
-            control_msg.execute()
 
-            manage_msg = KafkaMessage(t_manage, control_json, producer)
-            manage_msg.execute()
+            # send all json messages to topics
+            send_command(t_control, control_json, producer)
 
-            manage_msg.json = equipment_json
-            manage_msg.execute()
+            send_command(t_manage, control_json, producer)
 
-            manage_msg.json = metadata_json
-            manage_msg.execute()
+            send_command(t_manage, equipment_json, producer)
+
+            send_command(t_manage, metadata_json, producer)
 
         elif answers['command'] == 'Exit':
             # Wait until all messages have been delivered
@@ -229,8 +217,7 @@ def command_interface(exit_event, status, t_manage, t_control, producer):
         else:
             control_json = dumps({"category": "control", "run": {"action": answers['command'],
                                                                  "run_number": run_number}})
-            control_msg = KafkaMessage(t_control, control_json, producer)
-            control_msg.execute()
+            send_command(t_control, control_json, producer)
 
 
 def status_readout(exit_event, status, consumer):
@@ -291,8 +278,8 @@ def main():
     """
     The main function of the cli interface.
 
-    Creates the logger for Kafka message reports, gets the yaml config, creates the Kafka producer and consumer,
-    and starts the command input and status readout threads.
+    Creates the logger for Kafka message reports, gets the yaml config from command line argument,
+    creates the Kafka producer and consumer, and starts the command input and status readout threads.
     :raises KafkaException : Consumer could not subscribe to topics
     :raises RuntimeError : Consumer could not subscribe to topics
     :return :
