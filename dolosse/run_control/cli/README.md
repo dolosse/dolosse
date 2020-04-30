@@ -15,7 +15,7 @@ Examples of the json formats for the message categories are included.
 
 
 ```bash
-python kafka_run_control_interface.py --yaml-config [absolute path to yaml config]  # PyInquirer-based interactive CLI that accepts all inputs and shows DAQ status
+python kafka_control_cli.py --yaml-config [absolute path to yaml config]  # PyInquirer-based interactive CLI that accepts all inputs and shows DAQ status
 ```
 
 The interface has a manual refresh option for DAQ status information. 
