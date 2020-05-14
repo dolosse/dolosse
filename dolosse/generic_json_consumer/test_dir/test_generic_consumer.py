@@ -1,6 +1,6 @@
 """Test suite for the generic consumer"""
 
-from generic_json_consumer import populate, update_data
+from generic_json_consumer import populate, update_data, find_number
 
 def test_populate():
     test_var = {}
@@ -24,3 +24,23 @@ def test_update():
     assert(test_var["A"] == 4)
     assert(test_var["B"] == 5)
     assert(test_var["D"] == 7)
+
+def test_find_number(): 
+    number, validity = find_number(3.14)
+    assert(number == 3.14)
+    assert(validity == True)
+    number, validity = find_number("Not a number")
+    assert(number == 0)
+    assert(validity == False)
+    number, validity = find_number("3.14")
+    assert(number == 3.14)
+    assert(validity == True)
+    number, validity = find_number({1: 2, 3: 4})
+    assert(number == 0)
+    assert(validity == False)
+    number, validity = find_number("0xABC")
+    assert(number == 2748)
+    assert(validity == True)
+    number, validity = find_number([1, 1, 2, 3, 5, 8, 13])
+    assert(number == 0)
+    assert(validity == False)

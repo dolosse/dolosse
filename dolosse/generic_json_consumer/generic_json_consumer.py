@@ -9,6 +9,53 @@ from confluent_kafka import Consumer
 from matplotlib import pyplot
 
 
+def find_number(value):
+    """Convert value to a number, if posible, and indicate success or failure
+    Parameters:
+        value: The variable to convert (could be _anything_)
+    Return values: First the converted number, as float or int; then
+    a boolean that shows whether the conversion succeeded (true) or failed
+    (false)
+    """
+    number = 0 #Default value
+    valid = True #Also a default (one of these will usually change)
+    try:
+        number = float(value)
+    except (ValueError, TypeError):
+        valid = False
+        if not valid:
+            try:
+                number = int(value, 16)  # Catch hexadecimals
+                valid = True
+            except (ValueError, TypeError):
+                valid = False
+    return number, valid
+
+
+def list_append_value(items, name, new_val, validity):
+    """Add a variable to he end of the list if it is valid. Otherwise,
+    add a copy of the last value; or create a new list containing only
+    the value zero if there is no last value.
+    Parameters:
+        items: List of variables. A dict containing only lists.
+        name: Name of the variable to modify.
+        new_val: New value to use (only if valid)
+        validity: Whether or not the variable is, in fact, valid
+    Return: Nothing direct, but it modifies list as necessary
+    """
+    if name in items:
+        if validity:
+            items[name].append(new_val)
+        else:
+            items[name].append(
+                items[name][-1])
+    else:
+        if validity:
+            items[name] = [new_val]
+        else:
+            items[name] = [0]
+
+
 def populate(variables, decode, backfill=False, frontfill=False, prepend=""):
     """Takes the data from the dict and populates the variables
     Parameters:
@@ -26,37 +73,35 @@ def populate(variables, decode, backfill=False, frontfill=False, prepend=""):
     Return value: No direct return; this function rather populates the 'variables' dict
                   by appending new data from the 'decode' dict.
     """
-    for other_key in decode.keys():
-        valid = True
-        name = prepend + other_key
-        try:
-            following = float(decode[other_key])
-        except (ValueError, TypeError):
-            valid = False
-        if not valid:
-            try:
-                following = int(decode[other_key], 16)  # Catch hexadecimals
-                valid = True
-            except (ValueError, TypeError):
-                valid = False
-        if isinstance(decode[other_key], dict):
+    if isinstance(decode, dict):
+        for other_key in decode.keys():
+            valid = True
+            name = prepend + other_key
+            following, valid = find_number(decode[other_key])
+            if isinstance(decode[other_key], dict):
+                populate(variables,
+                         decode[other_key],
+                         False,
+                         backfill or frontfill,
+                         name + ": ")
+            elif isinstance(decode[other_key], list):
+                populate(variables,
+                         decode[other_key],
+                         False,
+                         backfill or frontfill,
+                         name)
+            else:
+                list_append_value(variables, name, following, valid)
+    elif isinstance(decode, list):
+        for counter in range(len(decode)):
             populate(variables,
-                     decode[other_key],
+                     decode[counter],
                      False,
                      backfill or frontfill,
-                     name + ": ")
-        else:
-            if name in variables:
-                if valid:
-                    variables[name].append(following)
-                else:
-                    variables[name].append(
-                        variables[name][-1])
-            else:
-                if valid:
-                    variables[name] = [following]
-                else:
-                    variables[name] = [0]
+                     prepend + "[" + str(counter) + "]" + ": ")
+    else:
+        value, valid = find_number(decode)
+        list_append_value(variables, prepend, value, valid)
 
 
 def get_args():
