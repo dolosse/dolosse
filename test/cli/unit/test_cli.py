@@ -6,9 +6,7 @@ date: 07 May 2020
 """
 
 import pytest
-import json
-import cli.kafka_control_cli as cli
-from confluent_kafka import Producer, KafkaException
+import dolosse.acquisition.run_control.cli.kafka_control_cli as cli
 from PyInquirer import ValidationError
 from prompt_toolkit.document import Document
 
@@ -23,22 +21,6 @@ def test_build_json():
                 "os": "test feedback"}
     cli.build_status_msg(json_msg, status)
     assert status['daq_state'] == json_msg['daq']['run_state'], 'test_failed'
-
-
-@pytest.mark.skip
-def test_send_command():
-    """Tests for kafka exceptions on a control message send to a kafka topic that fails"""
-
-    # configure producer
-    kafka_conf = {'bootstrap.servers': '196.24.232.101'}
-    json_msg = json.dumps({"category": "control", "run": {"action": "Stop", "run_number": 5}})
-    topic = 'rbs_midas_control'
-
-    # create interface producer
-    producer = Producer(**kafka_conf)
-
-    with pytest.raises(KafkaException):
-        cli.send_command(topic, json_msg, producer)
 
 
 def test_number_validate():
