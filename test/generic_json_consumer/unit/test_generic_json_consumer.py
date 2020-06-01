@@ -1,6 +1,6 @@
 """Test suite for the generic consumer"""
 
-from dolosse.generic_json_consumer.generic_json_consumer import populate, update_data, find_number
+from dolosse.analysis.consumers.generic_json_consumer.generic_json_consumer import populate, update_data, find_number
 
 def test_populate():
     test_var = {}
