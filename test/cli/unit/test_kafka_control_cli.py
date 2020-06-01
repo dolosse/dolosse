@@ -1,5 +1,5 @@
 """
-file: test_cli.py
+file: test_kafka_control_cli.py
 brief: Tests for the kafka control command line interface
 author: Caswell Pieters
 date: 07 May 2020
