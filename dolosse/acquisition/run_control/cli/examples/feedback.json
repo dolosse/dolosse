@@ -1,0 +1,10 @@
+{
+    "category": "feedback",
+    "daq": {
+        "run_state": "Running",
+        "evt_rate": 0,
+        "kB_rate": 0,
+        "events": 0
+    },
+    "os": "test feedback"
+}

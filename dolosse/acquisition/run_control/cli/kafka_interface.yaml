@@ -1,0 +1,8 @@
+kafka:
+    bootstrap_servers: 196.24.232.101
+    group_id_interface: rbs_control_interface
+    topics:
+        control: rbs_midas_control
+        manage: rbs_midas_manage
+        errors: rbs_midas_errors
+        feedback: rbs_midas_feedback
