@@ -92,12 +92,8 @@ def pld_to_parquet():
                     elif chunk == data.DEADTIME_BLOCK:
                         num_dead_blocks += 1
                     elif chunk == data.HEAD_BLOCK:
-                        head_dict = {}
                         num_head_blocks += 1
-                        if file_extension == '.pld':
-                            head_dict = header.PldHeader().read_header(f)
-                        head_dict.update(file=file_name)
-                        logger.info("HEAD - %s" % head_dict)
+                        logger.info("HEAD - %s" % header.PldHeader().read_header(f))
                     else:
                         num_unknown += 1
                 else:
