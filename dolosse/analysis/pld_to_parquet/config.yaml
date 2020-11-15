@@ -1,18 +1,41 @@
+dry_run: False
+
 hardware:
   pixie:
     firmware: 30474
     frequency: 250
 
-input:
-  file_list:
-#    - D:/data/svp/kafka-tests/kafka-data-test-0.pld
-#    - D:/data/svp/kafka-tests/bagel-single-spill-1.pld
-    - D:/data/ithemba/bagel/runs/runBaGeL_337.pld
-#    - D:/data/utk/pixieworkshop/pulser_003.ldf
-#    - D:/data/anl/vandle2015/a135feb_12.ldf
-#    - D:/data/ornl/073cu/cu73_04-1.ldf
-#    - D:/data/ornl/073cu/cu73_04-1.ldf
+# List of files that we're going to process.
+input_files:
+  - /path/to/file.pld
+
+# Directory containing output files.
+output_directory: data
 
 
-output:
-  root: data # The root directory that we'll use to store the output files and meta information
+# ---------- DO NOT MODIFY ANYTHING BELOW THIS LINE -----------
+logging:
+  version: 1
+  disable_existing_loggers: true
+  formatters:
+    simple:
+      format: '%(asctime)s - %(levelname)s - %(filename)s - %(funcName)s - %(message)s'
+  handlers:
+    console:
+      class: logging.StreamHandler
+      level: INFO
+      formatter: simple
+      stream: ext://sys.stdout
+    file:
+      class: logging.FileHandler
+      level: INFO
+      formatter: simple
+      filename: pld_to_parquet.log
+  loggers:
+    file:
+      level: INFO
+      handlers: [ console, file ]
+      propagate: no
+  root:
+    level: DEBUG
+    handlers: [ console, file ]

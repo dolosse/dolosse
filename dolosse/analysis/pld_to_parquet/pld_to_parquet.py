@@ -4,8 +4,9 @@ brief: Reads data from a PLD file.
 author: S. V. Paulauskas
 date: January 22, 2019
 """
+from argparse import ArgumentParser
 from io import BytesIO
-from json import dumps
+from logging import config, getLogger
 from multiprocessing import Pool
 from os.path import isdir, splitext, basename
 from os import mkdir, stat
@@ -44,41 +45,27 @@ def process_data_buffer(args):
     return events
 
 
-def construct_log_message(name, message, extras=None):
-    """
-    TODO: Update this to actually use logging class...
-    :param name: name of the file that we're processing
-    :param message: the message that we'd like to include.
-    :param extras: Extra information that we'd like to have in the message
-    :return:
-    """
-    info = {
-        'time': time.time(),
-        'file': name,
-        'message': message,
-        'script': __file__,
-    }
-    if extras:
-        info.update(extras)
-    return dumps(info) + "\n"
+def pld_to_parquet():
+    parser = ArgumentParser(description='Converts PLD files into Apache Parquet format.')
+    parser.add_argument('cfg', type=str, default='config.yaml', help='The YAML configuration file')
+    args = parser.parse_args()
 
-
-def binary_data_reader():
-    with open('config-dev.yaml') as f:
+    with open(args.cfg) as f:
         cfg = yaml.safe_load(f)
 
-    if not isdir(cfg['output']['root']):
-        mkdir(cfg['output']['root'])
+    config.dictConfig(cfg['logging'])
+    logger = getLogger()
 
-    log = open(cfg['output']['root'] + "/run.log", 'a')
-    meta = open(cfg['output']['root'] + "/meta.log", 'a')
+    if not isdir(cfg['output_directory']):
+        mkdir(cfg['output_directory'])
 
-    for file in cfg['input']['file_list']:
+    for file in cfg['input_files']:
         file_name, file_extension = splitext(basename(file))
         if file_extension not in ['.pld']:
-            raise NotImplementedError("Unrecognized file type: ", file_extension)
+            logger.error("Unrecognized file type: %s" % file_extension)
+            continue
         data_buffer_list = []
-        log.write(construct_log_message(file_name, "Starting to process %s" % file))
+        logger.info("Starting to process %s" % file)
 
         num_data_blocks = num_end_of_file = num_buffer_padding = num_head_blocks = num_unknown \
             = num_dir_blocks = num_dead_blocks = 0
@@ -87,10 +74,7 @@ def binary_data_reader():
             read_start_time = time.time()
             data_mask = ListModeDataMask(cfg['hardware']['pixie']['frequency'],
                                          cfg['hardware']['pixie']['firmware'])
-
-            log.write(
-                construct_log_message(file_name, "Started reading data buffers into memory."))
-            log.flush()
+            logger.info("Started reading data buffers into memory.")
             while True:
                 chunk = f.read(data.WORD)
                 if chunk:
@@ -113,36 +97,35 @@ def binary_data_reader():
                         if file_extension == '.pld':
                             head_dict = header.PldHeader().read_header(f)
                         head_dict.update(file=file_name)
-                        meta.write(dumps(head_dict) + "\n")
-                        meta.flush()
+                        logger.info("HEAD - %s" % head_dict)
                     else:
                         num_unknown += 1
                 else:
                     break
 
             unpacking_time = time.time()
-            log.write(
-                construct_log_message(file_name, "Finished reading buffers into memory in %s s." %
-                                      (unpacking_time - read_start_time)))
-            log.write(construct_log_message(file_name, "Sending %s DATA buffers for decoding." %
-                                            len(data_buffer_list)))
-            results = Pool().map(process_data_buffer, data_buffer_list)
-            decoding_time = time.time()
-            log.write(construct_log_message(file_name, "Decoding completed in %s s." %
-                                            (decoding_time - unpacking_time)))
+            logger.info("Took %s s to read buffers." % round(unpacking_time - read_start_time, 3))
 
+            logger.info("Sending %s DATA buffers for decoding." % len(data_buffer_list))
+            results = Pool().map(process_data_buffer, data_buffer_list)
+
+            logger.info("Aggregating triggers into single list.")
             data_list = []
-            log.write(construct_log_message(file_name, "Aggregating triggers into single list."))
-            log.flush()
             while results:
                 data_list.extend(results.pop())
 
-            log.write(construct_log_message(file_name, "Now writing to parquet."))
-            log.flush()
-            if data_list:
-                DataFrame(data_list).to_parquet(path=f"{cfg['output']['root']}/{file_name}.parquet")
+            decoding_time = time.time()
+            logger.info("Decoding completed in %s s." % round(decoding_time - unpacking_time, 3))
 
-            log.write(construct_log_message(file_name, "Finished working on the file", {
+            parquet_name = f"{cfg['output_directory']}/{file_name}.parquet"
+            logger.info("Now writing to %s." % parquet_name)
+            if not cfg["dry_run"] and data_list:
+                DataFrame(data_list).to_parquet(path=parquet_name)
+            else:
+                logger.warning("Dry run enabled, will not write to parquet.")
+
+            logger.info("Finished processing %s." % file)
+            logger.info("SUMMARY - %s" % {
                 'number_of_dirs': num_dir_blocks,
                 'number_of_heads': num_head_blocks,
                 'number_of_data': num_data_blocks,
@@ -150,16 +133,14 @@ def binary_data_reader():
                 'number_of_pads': num_buffer_padding,
                 'number_of_eof': num_end_of_file,
                 'number_of_unknowns': num_unknown,
-                'total_words': stat(file).st_size / 4,
-                'time_to_read': time.time() - read_start_time
-            }))
-        f.close()
-    log.close()
-    meta.close()
+                'total_words': stat(file).st_size / data.WORD,
+                'processing_time_in_seconds': round(time.time() - read_start_time, 3)
+            })
+            f.close()
 
 
 if __name__ == '__main__':
     try:
-        binary_data_reader()
+        pld_to_parquet()
     except KeyboardInterrupt:
         print("Exiting the program now.")
