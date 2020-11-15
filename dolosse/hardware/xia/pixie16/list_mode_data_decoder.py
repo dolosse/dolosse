@@ -171,12 +171,9 @@ def decode_listmode_data(stream, mask):
     decoded_data_list = []
     for chunk in iter(partial(stream.read, WORD), b''):
         decoded_data = decode_word_zero(unpack('I', chunk)[0], mask)
-        decoded_data.update({
-            'event_time_low': unpack('I', stream.read(WORD))[0]})
-        decoded_data.update(
-            decode_word_two(unpack('I', stream.read(WORD))[0], mask))
-        decoded_data.update(
-            decode_word_three(unpack('I', stream.read(WORD))[0], mask))
+        decoded_data.update({'event_time_low': unpack('I', stream.read(WORD))[0]})
+        decoded_data.update(decode_word_two(unpack('I', stream.read(WORD))[0], mask))
+        decoded_data.update(decode_word_three(unpack('I', stream.read(WORD))[0], mask))
 
         try:
             decoded_data.update(
