@@ -1,5 +1,5 @@
 """
-file: pld_to_parquet.py
+file: PldToParquet.py
 brief: Reads data from a PLD file.
 author: S. V. Paulauskas
 date: January 22, 2019
@@ -39,24 +39,25 @@ def process_data_buffer(args):
         module_bytes = unpack('I', buffer.read(data.WORD))[0] * data.WORD
         vsn = unpack('I', buffer.read(data.WORD))[0]
         data_bytes = module_bytes - 2 * data.WORD
-        events = events + decode_listmode_data(BytesIO(buffer.read(data_bytes)), mask)
+        events = events + decode_listmode_data(BytesIO(buffer.read(data_bytes)), massk)
         remaining_bytes = remaining_bytes - module_bytes
 
     return events
 
 
-def pld_to_parquet():
-    parser = ArgumentParser(description='Converts PLD files into Apache Parquet format.')
-    parser.add_argument('cfg', type=str, default='config.yaml', help='The YAML configuration file')
-    args = parser.parse_args()
-
-    with open(args.cfg) as f:
+def convert_pld(cfg_path):
+    """
+    Takes the path to a configuration file and converts all PLDs in the config to parquet files.
+    :param cfg_path: The path to the configuration file we want to use.
+    :return:
+    """
+    with open(cfg_path) as f:
         cfg = yaml.safe_load(f)
 
     config.dictConfig(cfg['logging'])
     logger = getLogger()
 
-    if not isdir(cfg['output_directory']):
+    if not isdir(cfg['output_directory']) and not cfg['dry_run']:
         mkdir(cfg['output_directory'])
 
     for file in cfg['input_files']:
@@ -133,3 +134,14 @@ def pld_to_parquet():
                 'processing_time_in_seconds': round(time.time() - read_start_time, 3)
             })
             f.close()
+
+
+if __name__ == '__main__':
+    try:
+        parser = ArgumentParser(description='Converts PLD files into Apache Parquet format.')
+        parser.add_argument('cfg', type=str, default='config.yaml',
+                            help='The YAML configuration file')
+        args = parser.parse_args()
+        convert_pld()
+    except KeyboardInterrupt:
+        print("Exiting the program now.")
