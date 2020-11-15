@@ -133,10 +133,3 @@ def pld_to_parquet():
                 'processing_time_in_seconds': round(time.time() - read_start_time, 3)
             })
             f.close()
-
-
-if __name__ == '__main__':
-    try:
-        pld_to_parquet()
-    except KeyboardInterrupt:
-        print("Exiting the program now.")
