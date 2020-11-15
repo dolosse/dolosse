@@ -1,5 +1,5 @@
 """
-file: binary_data_reader.py
+file: pld_to_parquet.py
 brief: Reads data from a PLD file.
 author: S. V. Paulauskas
 date: January 22, 2019
