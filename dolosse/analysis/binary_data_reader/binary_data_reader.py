@@ -63,8 +63,8 @@ def construct_log_message(name, message, extras=None):
     return dumps(info) + "\n"
 
 
-def main():
-    with open('config.yaml') as f:
+def binary_data_reader():
+    with open('config-dev.yaml') as f:
         cfg = yaml.safe_load(f)
 
     if not isdir(cfg['output']['root']):
@@ -160,6 +160,6 @@ def main():
 
 if __name__ == '__main__':
     try:
-        main()
+        binary_data_reader()
     except KeyboardInterrupt:
         print("Exiting the program now.")
