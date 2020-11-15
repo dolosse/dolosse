@@ -28,20 +28,20 @@ def process_data_buffer(args):
                  the binary mask that we'll apply to the data.
     :return: A list of decoded dictionary objects.
     """
-    buffer = args[0]
-    mask = args[1]
+    remaining_bytes = args[0]
+    buffer = args[1]
+    mask = args[2]
 
-    first_word = buffer.read(data.WORD)
-    if first_word == b'':
-        return []
+    events = list()
 
-    module_words = (unpack('I', first_word)[0] - 2) * data.WORD
-    unpack('I', buffer.read(data.WORD))
+    while remaining_bytes:
+        module_bytes = unpack('I', buffer.read(data.WORD))[0] * data.WORD
+        vsn = unpack('I', buffer.read(data.WORD))[0]
+        data_bytes = module_bytes - 2 * data.WORD
+        events = events + decode_listmode_data(BytesIO(buffer.read(data_bytes)), mask)
+        remaining_bytes = remaining_bytes - module_bytes
 
-    if not module_words:
-        return []
-
-    return decode_listmode_data(BytesIO(buffer.read(module_words)), mask)
+    return events
 
 
 def construct_log_message(name, message, extras=None):
@@ -96,10 +96,9 @@ def main():
                 if chunk:
                     if chunk == data.DATA_BLOCK:
                         num_data_blocks += 1
-                        # First word in a data buffer is the total size of the buffer
-                        total_data_buffer_size = (unpack('I', f.read(data.WORD))[0] - 1) * data.WORD
+                        buffer_bytes = unpack('I', f.read(data.WORD))[0] * data.WORD
                         data_buffer_list.append(
-                            [BytesIO(f.read(total_data_buffer_size)), data_mask])
+                            [buffer_bytes, BytesIO(f.read(buffer_bytes)), data_mask])
                     elif chunk == data.DIR_BLOCK:
                         num_dir_blocks += 1
                     elif chunk == data.END_OF_FILE:
@@ -127,7 +126,6 @@ def main():
                                       (unpacking_time - read_start_time)))
             log.write(construct_log_message(file_name, "Sending %s DATA buffers for decoding." %
                                             len(data_buffer_list)))
-            log.flush()
             results = Pool().map(process_data_buffer, data_buffer_list)
             decoding_time = time.time()
             log.write(construct_log_message(file_name, "Decoding completed in %s s." %
@@ -142,8 +140,7 @@ def main():
             log.write(construct_log_message(file_name, "Now writing to parquet."))
             log.flush()
             if data_list:
-                DataFrame(data_list).to_parquet(fname=(cfg['output']['root'] + "/" + file_name),
-                                                partition_cols=['crate', 'slot', 'channel'])
+                DataFrame(data_list).to_parquet(path=f"{cfg['output']['root']}/{file_name}.parquet")
 
             log.write(construct_log_message(file_name, "Finished working on the file", {
                 'number_of_dirs': num_dir_blocks,
