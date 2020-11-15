@@ -4,3 +4,4 @@ confluent-kafka
 pyarrow
 PyInquirer
 pandas
+numpy==1.19.3
