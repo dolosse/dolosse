@@ -171,12 +171,9 @@ def decode_listmode_data(stream, mask):
     decoded_data_list = []
     for chunk in iter(partial(stream.read, WORD), b''):
         decoded_data = decode_word_zero(unpack('I', chunk)[0], mask)
-        decoded_data.update({
-            'event_time_low': unpack('I', stream.read(WORD))[0]})
-        decoded_data.update(
-            decode_word_two(unpack('I', stream.read(WORD))[0], mask))
-        decoded_data.update(
-            decode_word_three(unpack('I', stream.read(WORD))[0], mask))
+        decoded_data.update({'event_time_low': unpack('I', stream.read(WORD))[0]})
+        decoded_data.update(decode_word_two(unpack('I', stream.read(WORD))[0], mask))
+        decoded_data.update(decode_word_three(unpack('I', stream.read(WORD))[0], mask))
 
         try:
             decoded_data.update(
@@ -186,7 +183,7 @@ def decode_listmode_data(stream, mask):
                               % (decoded_data['header_length'], decoded_data['crate'],
                                  decoded_data['slot'], decoded_data['channel']))
 
-        if decoded_data['trace_length'] != 0:
+        if decoded_data['trace_length'] and decoded_data['trace_length'] != 32768:
             if (decoded_data['event_length'] - decoded_data['header_length']) \
                     == (decoded_data['trace_length'] * 0.5):
                 decoded_data.update({'trace': decode_trace(BytesIO(stream.read(
