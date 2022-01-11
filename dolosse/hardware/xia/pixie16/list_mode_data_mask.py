@@ -39,20 +39,26 @@ class ListModeDataMask:
         """ The number of words that make up the QDC when it's in the header """
         return 8
 
-    @staticmethod
-    def channel():
+    def channel(self):
         """ Provides the mask needed to decode the Channel from Word 0 """
-        return 0x0000000F, 0
+        if self.firmware < 46540:
+            return 0x0000000F, 0
+        else:
+            return 0x0000003F, 0
 
-    @staticmethod
-    def slot():
+    def slot(self):
         """ Provides the mask needed to decode the Slot from Word 0 """
-        return 0x000000F0, 4
+        if self.firmware < 46540:
+            return 0x000000F0, 4
+        else:
+            return 0x000003C0, 6
 
-    @staticmethod
-    def crate():
+    def crate(self):
         """ Provides the mask needed to decode the Crate from Word 0 """
-        return 0x00000F00, 8
+        if self.firmware < 46540:
+            return 0x00000F00, 8
+        else:
+            return 0x00000C00, 10
 
     @staticmethod
     def header_length():
