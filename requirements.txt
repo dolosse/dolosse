@@ -1,4 +1,6 @@
-pyyaml
+boto3
+botocore
+PyYaml
 colorama
 confluent-kafka
 pyarrow
