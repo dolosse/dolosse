@@ -188,6 +188,8 @@ def decode_listmode_data(stream, mask):
                     == (decoded_data['trace_length'] * 0.5):
                 decoded_data.update({'trace': decode_trace(BytesIO(stream.read(
                     WORD * int(decoded_data['trace_length'] * 0.5))))})
+                # if (decoded_data['channel'] == 0):
+                #     print(decoded_data['channel'], decoded_data['trace'])
             else:
                 raise ValueError(
                     'Event Length (%s) does not match with Header(%s) + Trace (%s) Length !' % (
